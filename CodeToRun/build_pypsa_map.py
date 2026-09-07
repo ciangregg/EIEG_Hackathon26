@@ -573,7 +573,7 @@ if not not_mapped.empty:
         if col in not_mapped.columns
     ]
 
-    output_file = OUTPUT_DIR / "buses_not_mapped.csv"
+    output_file = OUTPUT_DIR / "output/buses_not_mapped.csv"
 
     not_mapped[columns].to_csv(output_file)
 
