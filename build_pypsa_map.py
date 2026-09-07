@@ -87,6 +87,119 @@ buses["x"] = pd.to_numeric(buses["x"], errors="coerce")
 buses["y"] = pd.to_numeric(buses["y"], errors="coerce")
 buses["v_nom"] = pd.to_numeric(buses["v_nom"], errors="coerce")
 
+
+# ---------------------------------------------------------------------
+# FILL MISSING BUS COORDINATES FROM OSM CANDIDATES
+# ---------------------------------------------------------------------
+
+OSM_CANDIDATES_FILE = DATA_DIR / "buses_osm_candidates.csv"
+
+if OSM_CANDIDATES_FILE.exists():
+
+    osm = pd.read_csv(OSM_CANDIDATES_FILE)
+
+    # PyPSA bus IDs are usually stored in the index.
+    buses.index = buses.index.astype(str)
+
+    # Work out which column in the OSM CSV contains the original bus ID.
+    # Common possibilities are "name", "bus", or an unnamed CSV index column.
+    candidate_id_column = None
+
+    for col in ["name", "bus", "Bus", "Unnamed: 0"]:
+        if col in osm.columns:
+            candidate_id_column = col
+            break
+
+    if candidate_id_column is None:
+        print(
+            "WARNING: Could not identify a bus-ID column in "
+            "buses_osm_candidates.csv"
+        )
+
+    else:
+        osm[candidate_id_column] = osm[candidate_id_column].astype(str)
+
+        # Keep only candidates that passed your initial sanity check.
+        if "review_status" in osm.columns:
+            osm = osm[
+                osm["review_status"].astype(str).str.lower() == "candidate"
+            ].copy()
+
+        # Make sure OSM coordinates are numeric.
+        osm["osm_lon"] = pd.to_numeric(
+            osm["osm_lon"],
+            errors="coerce"
+        )
+
+        osm["osm_lat"] = pd.to_numeric(
+            osm["osm_lat"],
+            errors="coerce"
+        )
+
+        osm = osm.dropna(
+            subset=["osm_lon", "osm_lat"]
+        )
+
+        # Index by bus ID for easy lookup.
+        osm = osm.set_index(candidate_id_column)
+
+        filled_count = 0
+
+        for bus_id in buses.index:
+
+            x = buses.at[bus_id, "x"]
+            y = buses.at[bus_id, "y"]
+
+            # Treat missing values and (0,0) as needing a fallback.
+            needs_coordinates = (
+                pd.isna(x)
+                or pd.isna(y)
+                or (x == 0 and y == 0)
+            )
+
+            if not needs_coordinates:
+                continue
+
+            if bus_id not in osm.index:
+                continue
+
+            candidate = osm.loc[bus_id]
+
+            # If duplicate candidates exist, just take the first for now.
+            if isinstance(candidate, pd.DataFrame):
+                candidate = candidate.iloc[0]
+
+            lon = candidate["osm_lon"]
+            lat = candidate["osm_lat"]
+
+            # Final Ireland sanity check.
+            if not (
+                -11 <= lon <= -5
+                and 51 <= lat <= 56
+            ):
+                continue
+
+            buses.at[bus_id, "x"] = lon
+            buses.at[bus_id, "y"] = lat
+
+            # Optional: record where the coordinate came from
+            buses.at[bus_id, "coordinate_source"] = "OSM candidate"
+
+            filled_count += 1
+
+        print(
+            f"Filled {filled_count} bus coordinates "
+            "from OSM candidates."
+        )
+
+else:
+    print(
+        f"No OSM candidate file found at:\n"
+        f"{OSM_CANDIDATES_FILE}"
+    )
+
+
+
 valid_buses = buses[
     buses["x"].notna()
     & buses["y"].notna()
