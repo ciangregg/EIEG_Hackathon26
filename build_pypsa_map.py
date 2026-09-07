@@ -34,8 +34,8 @@ import pypsa
 # SETTINGS
 # ---------------------------------------------------------------------
 
-DATA_DIR = Path("/home/seba/Documents/Colleg/Hackathon_2/Hackathons-main/grid_TF_Wind/data/pypsa/TYTFS2024_WP2033_V35_transmission")       # folder containing buses.csv, lines.csv, etc.
-OUTPUT_DIR = Path("/home/seba/Documents/Colleg/Hackathon_2/EIEG_Hackathon26")
+DATA_DIR = Path("data/TYTFS2024_WP2033_V35_transmission")# folder containing buses.csv, lines.csv, etc.
+OUTPUT_DIR = Path("output/")
 STATIC_OUTPUT = "pypsa_network_map.png"
 INTERACTIVE_OUTPUT = "pypsa_network_map.html"
 

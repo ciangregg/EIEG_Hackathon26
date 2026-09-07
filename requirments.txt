@@ -1,1 +1,4 @@
 pypsa
+pandas
+matplotlib
+folium
