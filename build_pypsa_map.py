@@ -35,6 +35,7 @@ import pypsa
 # ---------------------------------------------------------------------
 
 DATA_DIR = Path("/home/seba/Documents/Colleg/Hackathon_2/Hackathons-main/grid_TF_Wind/data/pypsa/TYTFS2024_WP2033_V35_transmission")       # folder containing buses.csv, lines.csv, etc.
+OUTPUT_DIR = Path("/home/seba/Documents/Colleg/Hackathon_2/EIEG_Hackathon26")
 STATIC_OUTPUT = "pypsa_network_map.png"
 INTERACTIVE_OUTPUT = "pypsa_network_map.html"
 
@@ -411,23 +412,60 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------
-# REPORT MISSING GEOCODES
+# REPORT BUSES NOT MAPPED
 # ---------------------------------------------------------------------
 
-if len(missing_buses):
-    missing = buses.loc[missing_buses].copy()
+not_mapped = buses.loc[missing_buses].copy()
+
+if not not_mapped.empty:
+
+    def coordinate_reason(row):
+        # Missing both
+        if pd.isna(row["x"]) and pd.isna(row["y"]):
+            return "missing longitude and latitude"
+
+        # Missing longitude only
+        if pd.isna(row["x"]):
+            return "missing longitude"
+
+        # Missing latitude only
+        if pd.isna(row["y"]):
+            return "missing latitude"
+
+        # Explicit (0, 0)
+        if row["x"] == 0 and row["y"] == 0:
+            return "coordinates are (0, 0)"
+
+        # Outside our Ireland map bounds
+        if not (-11 <= row["x"] <= -5 and 51 <= row["y"] <= 56):
+            return "outside Ireland bounds"
+
+        return "unknown"
+
+    not_mapped["reason"] = not_mapped.apply(
+        coordinate_reason,
+        axis=1
+    )
 
     columns = [
-        col
-        for col in [
-            "v_nom",
+        col for col in [
             "psse_name",
             "station",
-            "jurisdiction",
+            "v_nom",
+            "x",
+            "y",
             "geocode_method",
+            "reason",
         ]
-        if col in missing.columns
+        if col in not_mapped.columns
     ]
 
-    missing[columns].to_csv("buses_missing_coordinates.csv")
-    print("Saved missing-coordinate report: buses_missing_coordinates.csv")
+    output_file = OUTPUT_DIR / "buses_not_mapped.csv"
+
+    not_mapped[columns].to_csv(output_file)
+
+    print(f"Saved unmapped bus report: {output_file}")
+
+    # Useful summary in terminal
+    print("\nReasons buses were not mapped:")
+    print(not_mapped["reason"].value_counts())
