@@ -4,12 +4,9 @@ import pandas as pd
 import requests
 
 
-DATA_DIR = Path(
-    "/home/seba/Documents/Colleg/Hackathon_2/EIEG_Hackathon26/"
-)
 
-INPUT_FILE = DATA_DIR / "buses_not_mapped.csv"
-OUTPUT_FILE = DATA_DIR / "buses_osm_candidates.csv"
+INPUT_FILE = "outputbuses_not_mapped.csv"
+OUTPUT_FILE =  "output/buses_osm_candidates.csv"
 
 df = pd.read_csv(INPUT_FILE)
 
