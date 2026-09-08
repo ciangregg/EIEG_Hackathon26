@@ -33,11 +33,24 @@ import pypsa
 # ---------------------------------------------------------------------
 # SETTINGS
 # ---------------------------------------------------------------------
+from pathlib import Path
 
-DATA_DIR = Path("data/TYTFS2024_WP2033_V35_transmission")# folder containing buses.csv, lines.csv, etc.
-OUTPUT_DIR = Path("output/")
-STATIC_OUTPUT = "pypsa_network_map.png"
-INTERACTIVE_OUTPUT = "pypsa_network_map.html"
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = SCRIPT_DIR.parent
+
+DATA_DIR = PROJECT_DIR / "data" / "TYTFS2024_WP2033_V35_transmission"
+OUTPUT_DIR = PROJECT_DIR / "output"
+
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+STATIC_OUTPUT = OUTPUT_DIR / "pypsa_network_map.png"
+INTERACTIVE_OUTPUT = OUTPUT_DIR / "pypsa_network_map.html"
+
+print(f"Loading PyPSA network from: {DATA_DIR}")
+print(f"Exists: {DATA_DIR.exists()}")
+print(f"Is directory: {DATA_DIR.is_dir()}")
+
+n = pypsa.Network(DATA_DIR)
 
 SHOW_GENERATORS = True
 SHOW_TRANSFORMERS = True
@@ -389,10 +402,18 @@ try:
     centre_lon = valid_buses["x"].median()
 
     fmap = folium.Map(
-        location=[centre_lat, centre_lon],
-        zoom_start=7,
-        tiles="CartoDB positron",
+    location=[centre_lat, centre_lon],
+    zoom_start=7,
+    tiles=None,
     )
+
+    folium.TileLayer(
+    tiles="https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attr="© OpenStreetMap contributors",
+    name="OpenStreetMap",
+    max_zoom=19,
+    referrer_policy="strict-origin-when-cross-origin",
+    ).add_to(fmap)
 
     # Lines
     for line_name, line in lines.iterrows():
@@ -516,6 +537,18 @@ try:
 
     fmap.save(INTERACTIVE_OUTPUT)
     print(f"Saved interactive map: {INTERACTIVE_OUTPUT}")
+    # Patch Folium-generated HTML so Leaflet sends the required Referer.
+    html = Path(INTERACTIVE_OUTPUT).read_text(encoding="utf-8")
+
+    old = '"opacity": 1,'
+    new = '"opacity": 1,\n  "referrerPolicy": "strict-origin-when-cross-origin",'
+
+    html = html.replace(old, new, 1)
+
+    Path(INTERACTIVE_OUTPUT).write_text(html, encoding="utf-8")
+
+    print("Added Leaflet referrerPolicy to tile layer.")
+
 
 except ImportError:
     print(
@@ -573,7 +606,7 @@ if not not_mapped.empty:
         if col in not_mapped.columns
     ]
 
-    output_file = OUTPUT_DIR / "output/buses_not_mapped.csv"
+    output_file = OUTPUT_DIR / "buses_not_mapped_new.csv"
 
     not_mapped[columns].to_csv(output_file)
 
