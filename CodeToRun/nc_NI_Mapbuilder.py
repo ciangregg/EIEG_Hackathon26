@@ -367,6 +367,12 @@ bus_lookup = {
     if bus_id in ni_bus_ids
 }
 
+NI_OUTPUT_NC = "SV2024_northern_ireland.nc"
+
+n.export_to_netcdf(NI_OUTPUT_NC)
+
+print(f"Saved NI-only network to: {NI_OUTPUT_NC}")
+
 print(
     f"Buses remaining for map: {len(bus_lookup)}"
 )
