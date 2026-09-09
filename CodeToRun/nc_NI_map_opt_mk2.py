@@ -23,9 +23,11 @@ BASEMAP_FILE = (
     "EIEG_Hackathon26/ireland_all_island.geojson"
 )
 
-OUTPUT_HTML = "SV2024_NI_before_after_difference_mk2.html"
+OUTPUT_HTML = "SV2024_NI_before_after_difference_mk3.html"
 SNAPSHOT_INDEX = 0
 CHANGE_TOLERANCE_MW = 1.0
+MIN_GENERATOR_DISPATCH_MW = 1.0
+
 
 
 def clean_value(value):
@@ -481,10 +483,31 @@ for bus_id, bus in bus_lookup.items():
 
 substation_layer.add_to(m)
 
-
 # ------------------------------------------------------------
 # Generators
 # ------------------------------------------------------------
+# ------------------------------------------------------------
+# Generators
+# ------------------------------------------------------------
+
+generator_dispatch_now = (
+    n_after.generators_t.p
+    .loc[snapshot]
+    .abs()
+)
+
+active_generators = set(
+    generator_dispatch_now[
+        generator_dispatch_now
+        > MIN_GENERATOR_DISPATCH_MW
+    ].index
+)
+
+print(
+    f"Generators producing > "
+    f"{MIN_GENERATOR_DISPATCH_MW} MW at {snapshot}: "
+    f"{len(active_generators)} / {len(n_after.generators)}"
+)
 
 all_generators = n_before.generators.index.union(
     n_after.generators.index
@@ -494,10 +517,14 @@ generator_number_at_bus = {}
 
 for generator_id in all_generators:
 
+    if generator_id not in active_generators:
+        continue
+
     if generator_id in n_after.generators.index:
         gen_row = n_after.generators.loc[generator_id]
     else:
         gen_row = n_before.generators.loc[generator_id]
+
 
     bus_id = gen_row.get("bus", None)
 
