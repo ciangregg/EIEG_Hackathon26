@@ -1,0 +1,152 @@
+group,group_name,asset_index,asset,bus,market_bucket,mec_mw,latitude,longitude
+1,NW Northern,2,Altahullion Wind Farm,83510,wind,26.0,54.962331,-7.033634
+1,NW Northern,8,Altahullion 2 Wind Farm,83510,wind,11.7,54.958781,-7.034578
+1,NW Northern,14,Garves Wind Farm,87900,wind,15.0,55.000707,-6.449401
+1,NW Northern,15,Gruig Wind Farm,87900,wind,25.0,55.025267,-6.255606
+1,NW Northern,25,Dunmore Wind Farm,75010,wind,21.0,55.097433,-6.820452
+1,NW Northern,26,Dunbeg Wind Farm,75010,wind,42.0,55.086762,-6.818699
+1,NW Northern,29,Monnaboy Wind Farm,75510,wind,12.0,54.984899,-7.109227
+1,NW Northern,31,Cloonty Wind Farm,84511,wind,9.2,55.161057,-6.482488
+1,NW Northern,37,Glenbuck Wind Farm,87900,wind,9.2,54.982495,-6.427593
+1,NW Northern,39,Long Mountain Wind Farm,87900,wind,27.6,54.982585,-6.417873
+1,NW Northern,45,Bann Road PV Farm,87900,solar,29.81,54.964249,-6.495024
+1,NW Northern,50,Altaveedan Wind Farm,87900,wind,18.0,55.077014,-6.263203
+1,NW Northern,52,Brockaghboy Windfarm,73500,wind,47.5,54.937243,-6.737928
+1,NW Northern,54,Finvoy Road Solar Farm,87900,solar,5.209,54.961968,-6.489973
+1,NW Northern,63,Evishagaran Wind Farm,73500,wind,46.8,54.939608,-6.832506
+1,NW Northern,64,Craiggore Wind Farm,73500,wind,23.5,54.994741,-6.804186
+2,NW Southern,0,Owenreagh Wind Farm,89510,wind,5.5,54.812527,-7.342073
+2,NW Southern,3,Snugborough Wind Farm,70010,wind,13.5,54.142851,-7.609639
+2,NW Southern,4,Tappaghan Wind Farm,77210,wind,28.5,54.5612,-7.551037
+2,NW Southern,5,Callagheen Wind Farm,79010,wind,16.9,54.442754,-8.01448
+2,NW Southern,6,Bin Mountain Wind Farm,77210,wind,9.0,54.616469,-7.632094
+2,NW Southern,7,Lough Hill Wind Farm,77210,wind,7.8,54.627825,-7.609402
+2,NW Southern,9,Slieve Rushen 2 Wind Farm,70010,wind,54.0,54.162505,-7.617123
+2,NW Southern,11,Bessy Bell 2 Wind Farm,85510,wind,9.0,54.680476,-7.386488
+2,NW Southern,12,Owenreagh 2 Wind Farm,89510,wind,5.1,54.809594,-7.336241
+2,NW Southern,13,Slieve Divena 1 Wind Farm,80710,wind,30.0,54.508857,-7.09816
+2,NW Southern,17,Crockagarran Wind Farm,90210,wind,18.0,54.554098,-7.020671
+2,NW Southern,18,Curryfree Wind Farm,81810,wind,15.0,54.930121,-7.310936
+2,NW Southern,20,Slieve Kirk Wind Farm,81810,wind,73.6,54.917775,-7.266002
+2,NW Southern,21,Church Hill Wind Farm,77210,wind,18.4,54.654753,-7.718309
+2,NW Southern,22,Crighshane Wind Farm,77210,wind,32.2,54.642407,-7.79754
+2,NW Southern,23,Carrickatane Wind Farm,81810,wind,20.7,54.913525,-7.331023
+2,NW Southern,27,Thornog Wind Farm,77210,wind,20.0,54.589279,-7.621001
+2,NW Southern,28,Molly Mountain Wind Farm,70010,wind,15.0,54.197944,-7.636499
+2,NW Southern,30,Seegronan Wind Farm,77210,wind,14.1,54.651116,-7.696645
+2,NW Southern,32,Tievenameenta Wind Farm,77210,wind,34.5,54.644002,-7.747534
+2,NW Southern,33,Ora More Wind Farm,79010,wind,15.0,54.331522,-7.886121
+2,NW Southern,34,Cregganconroe Wind Farm,90210,wind,13.8,54.612192,-6.970614
+2,NW Southern,35,Eglish Wind Farm,81810,wind,15.0,54.891013,-7.214017
+2,NW Southern,36,Eshmore Wind Farm,90210,wind,7.05,54.539272,-6.983297
+2,NW Southern,38,Gortfinbar Wind Farm,90210,wind,15.0,54.544627,-7.027095
+2,NW Southern,40,Altamuskin Wind Farm,80710,wind,14.1,54.518506,-7.106656
+2,NW Southern,42,Crockbaravally Wind Farm,90210,wind,7.5,54.516883,-7.03685
+2,NW Southern,43,Lisburn Solar Park (Ballinderry Road),70010,solar,16.92,54.142022,-7.466166
+2,NW Southern,44,Slieve Divena 2 Wind Farm,80710,wind,18.8,54.513816,-7.105354
+2,NW Southern,46,Inishative Wind Farm,90210,wind,13.8,54.565526,-6.980634
+2,NW Southern,49,Shantavany Scotch Wind Farm,80710,wind,16.1,54.491249,-7.093362
+2,NW Southern,51,Crockdun Wind Farm,90210,wind,12.5,54.635372,-7.068539
+2,NW Southern,59,Pollnalaght (Cornavarrow) Wind Farm,77210,wind,36.0,54.657951,-7.465262
+2,NW Southern,60,Slieveglass Wind Farm,77210,wind,6.9,54.648031,-7.573285
+2,NW Southern,61,Castlecraig Wind Farm,77210,wind,25.0,54.625717,-7.588645
+2,NW Southern,62,Teiges Mountain Wind Farm,79010,wind,11.0,54.303914,-7.338447
+3,Oma-Dromore,3,Snugborough Wind Farm,70010,wind,13.5,54.142851,-7.609639
+3,Oma-Dromore,4,Tappaghan Wind Farm,77210,wind,28.5,54.5612,-7.551037
+3,Oma-Dromore,5,Callagheen Wind Farm,79010,wind,16.9,54.442754,-8.01448
+3,Oma-Dromore,6,Bin Mountain Wind Farm,77210,wind,9.0,54.616469,-7.632094
+3,Oma-Dromore,7,Lough Hill Wind Farm,77210,wind,7.8,54.627825,-7.609402
+3,Oma-Dromore,9,Slieve Rushen 2 Wind Farm,70010,wind,54.0,54.162505,-7.617123
+3,Oma-Dromore,21,Church Hill Wind Farm,77210,wind,18.4,54.654753,-7.718309
+3,Oma-Dromore,22,Crighshane Wind Farm,77210,wind,32.2,54.642407,-7.79754
+3,Oma-Dromore,27,Thornog Wind Farm,77210,wind,20.0,54.589279,-7.621001
+3,Oma-Dromore,28,Molly Mountain Wind Farm,70010,wind,15.0,54.197944,-7.636499
+3,Oma-Dromore,30,Seegronan Wind Farm,77210,wind,14.1,54.651116,-7.696645
+3,Oma-Dromore,32,Tievenameenta Wind Farm,77210,wind,34.5,54.644002,-7.747534
+3,Oma-Dromore,33,Ora More Wind Farm,79010,wind,15.0,54.331522,-7.886121
+3,Oma-Dromore,43,Lisburn Solar Park (Ballinderry Road),70010,solar,16.92,54.142022,-7.466166
+3,Oma-Dromore,59,Pollnalaght (Cornavarrow) Wind Farm,77210,wind,36.0,54.657951,-7.465262
+3,Oma-Dromore,60,Slieveglass Wind Farm,77210,wind,6.9,54.648031,-7.573285
+3,Oma-Dromore,61,Castlecraig Wind Farm,77210,wind,25.0,54.625717,-7.588645
+3,Oma-Dromore,62,Teiges Mountain Wind Farm,79010,wind,11.0,54.303914,-7.338447
+4,All NI,0,Owenreagh Wind Farm,89510,wind,5.5,54.812527,-7.342073
+4,All NI,1,Lendrum's Bridge Wind Farm,76810,wind,13.2,54.438477,-7.342706
+4,All NI,2,Altahullion Wind Farm,83510,wind,26.0,54.962331,-7.033634
+4,All NI,3,Snugborough Wind Farm,70010,wind,13.5,54.142851,-7.609639
+4,All NI,4,Tappaghan Wind Farm,77210,wind,28.5,54.5612,-7.551037
+4,All NI,5,Callagheen Wind Farm,79010,wind,16.9,54.442754,-8.01448
+4,All NI,6,Bin Mountain Wind Farm,77210,wind,9.0,54.616469,-7.632094
+4,All NI,7,Lough Hill Wind Farm,77210,wind,7.8,54.627825,-7.609402
+4,All NI,8,Altahullion 2 Wind Farm,83510,wind,11.7,54.958781,-7.034578
+4,All NI,9,Slieve Rushen 2 Wind Farm,70010,wind,54.0,54.162505,-7.617123
+4,All NI,10,Wolf Bog Wind Farm,80511,wind,10.0,54.802964,-6.086314
+4,All NI,11,Bessy Bell 2 Wind Farm,85510,wind,9.0,54.680476,-7.386488
+4,All NI,12,Owenreagh 2 Wind Farm,89510,wind,5.1,54.809594,-7.336241
+4,All NI,13,Slieve Divena 1 Wind Farm,80710,wind,30.0,54.508857,-7.09816
+4,All NI,14,Garves Wind Farm,87900,wind,15.0,55.000707,-6.449401
+4,All NI,15,Gruig Wind Farm,87900,wind,25.0,55.025267,-6.255606
+4,All NI,16,Hunters Hill Wind Farm,76810,wind,20.0,54.438618,-7.332378
+4,All NI,17,Crockagarran Wind Farm,90210,wind,18.0,54.554098,-7.020671
+4,All NI,18,Curryfree Wind Farm,81810,wind,15.0,54.930121,-7.310936
+4,All NI,19,Screggagh Wind Farm,76810,wind,20.0,54.453415,-7.339121
+4,All NI,20,Slieve Kirk Wind Farm,81810,wind,73.6,54.917775,-7.266002
+4,All NI,21,Church Hill Wind Farm,77210,wind,18.4,54.654753,-7.718309
+4,All NI,22,Crighshane Wind Farm,77210,wind,32.2,54.642407,-7.79754
+4,All NI,23,Carrickatane Wind Farm,81810,wind,20.7,54.913525,-7.331023
+4,All NI,24,Carn Hill Wind Farm,74011,wind,13.8,54.722684,-5.918238
+4,All NI,25,Dunmore Wind Farm,75010,wind,21.0,55.097433,-6.820452
+4,All NI,26,Dunbeg Wind Farm,75010,wind,42.0,55.086762,-6.818699
+4,All NI,27,Thornog Wind Farm,77210,wind,20.0,54.589279,-7.621001
+4,All NI,28,Molly Mountain Wind Farm,70010,wind,15.0,54.197944,-7.636499
+4,All NI,29,Monnaboy Wind Farm,75510,wind,12.0,54.984899,-7.109227
+4,All NI,30,Seegronan Wind Farm,77210,wind,14.1,54.651116,-7.696645
+4,All NI,31,Cloonty Wind Farm,84511,wind,9.2,55.161057,-6.482488
+4,All NI,32,Tievenameenta Wind Farm,77210,wind,34.5,54.644002,-7.747534
+4,All NI,33,Ora More Wind Farm,79010,wind,15.0,54.331522,-7.886121
+4,All NI,34,Cregganconroe Wind Farm,90210,wind,13.8,54.612192,-6.970614
+4,All NI,35,Eglish Wind Farm,81810,wind,15.0,54.891013,-7.214017
+4,All NI,36,Eshmore Wind Farm,90210,wind,7.05,54.539272,-6.983297
+4,All NI,37,Glenbuck Wind Farm,87900,wind,9.2,54.982495,-6.427593
+4,All NI,38,Gortfinbar Wind Farm,90210,wind,15.0,54.544627,-7.027095
+4,All NI,39,Long Mountain Wind Farm,87900,wind,27.6,54.982585,-6.417873
+4,All NI,40,Altamuskin Wind Farm,80710,wind,14.1,54.518506,-7.106656
+4,All NI,41,Crockandun Wind Farm,75810,wind,15.0,54.7413,-6.78232
+4,All NI,42,Crockbaravally Wind Farm,90210,wind,7.5,54.516883,-7.03685
+4,All NI,43,Lisburn Solar Park (Ballinderry Road),70010,solar,16.92,54.142022,-7.466166
+4,All NI,44,Slieve Divena 2 Wind Farm,80710,wind,18.8,54.513816,-7.105354
+4,All NI,45,Bann Road PV Farm,87900,solar,29.81,54.964249,-6.495024
+4,All NI,46,Inishative Wind Farm,90210,wind,13.8,54.565526,-6.980634
+4,All NI,47,Lough Road PV Farm,84011,solar,21.0,54.558824,-6.242561
+4,All NI,48,Millar Farm PV,70311,solar,6.27,54.74301,-6.248491
+4,All NI,49,Shantavany Scotch Wind Farm,80710,wind,16.1,54.491249,-7.093362
+4,All NI,50,Altaveedan Wind Farm,87900,wind,18.0,55.077014,-6.263203
+4,All NI,51,Crockdun Wind Farm,90210,wind,12.5,54.635372,-7.068539
+4,All NI,52,Brockaghboy Windfarm,73500,wind,47.5,54.937243,-6.737928
+4,All NI,53,Rathsherry Wind Farm,71011,wind,21.15,54.939792,-6.19884
+4,All NI,54,Finvoy Road Solar Farm,87900,solar,5.209,54.961968,-6.489973
+4,All NI,55,Maghaberry Solar Farm,84011,solar,20.43,54.512274,-6.173421
+4,All NI,56,Elginny Hill Wind Farm,71011,wind,23.0,54.934388,-6.215012
+4,All NI,57,Laurel Hill Road Solar Park,71511,solar,8.5,54.40097,-6.25725
+4,All NI,58,Ballygarvey Road Solar Park,71011,solar,6.0,54.88442,-6.252785
+4,All NI,59,Pollnalaght (Cornavarrow) Wind Farm,77210,wind,36.0,54.657951,-7.465262
+4,All NI,60,Slieveglass Wind Farm,77210,wind,6.9,54.648031,-7.573285
+4,All NI,61,Castlecraig Wind Farm,77210,wind,25.0,54.625717,-7.588645
+4,All NI,62,Teiges Mountain Wind Farm,79010,wind,11.0,54.303914,-7.338447
+4,All NI,63,Evishagaran Wind Farm,73500,wind,46.8,54.939608,-6.832506
+4,All NI,64,Craiggore Wind Farm,73500,wind,23.5,54.994741,-6.804186
+4,All NI,65,Ballykeel Wind Farm,83011,wind,16.1,54.854149,-5.912451
+5,Kells - Rasharkin,2,Altahullion Wind Farm,83510,wind,26.0,54.962331,-7.033634
+5,Kells - Rasharkin,8,Altahullion 2 Wind Farm,83510,wind,11.7,54.958781,-7.034578
+5,Kells - Rasharkin,14,Garves Wind Farm,87900,wind,15.0,55.000707,-6.449401
+5,Kells - Rasharkin,15,Gruig Wind Farm,87900,wind,25.0,55.025267,-6.255606
+5,Kells - Rasharkin,25,Dunmore Wind Farm,75010,wind,21.0,55.097433,-6.820452
+5,Kells - Rasharkin,26,Dunbeg Wind Farm,75010,wind,42.0,55.086762,-6.818699
+5,Kells - Rasharkin,31,Cloonty Wind Farm,84511,wind,9.2,55.161057,-6.482488
+5,Kells - Rasharkin,37,Glenbuck Wind Farm,87900,wind,9.2,54.982495,-6.427593
+5,Kells - Rasharkin,39,Long Mountain Wind Farm,87900,wind,27.6,54.982585,-6.417873
+5,Kells - Rasharkin,45,Bann Road PV Farm,87900,solar,29.81,54.964249,-6.495024
+5,Kells - Rasharkin,50,Altaveedan Wind Farm,87900,wind,18.0,55.077014,-6.263203
+5,Kells - Rasharkin,52,Brockaghboy Windfarm,73500,wind,47.5,54.937243,-6.737928
+5,Kells - Rasharkin,54,Finvoy Road Solar Farm,87900,solar,5.209,54.961968,-6.489973
+5,Kells - Rasharkin,63,Evishagaran Wind Farm,73500,wind,46.8,54.939608,-6.832506
+5,Kells - Rasharkin,64,Craiggore Wind Farm,73500,wind,23.5,54.994741,-6.804186
