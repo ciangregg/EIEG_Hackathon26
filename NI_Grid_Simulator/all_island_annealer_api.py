@@ -530,7 +530,7 @@ def _required_reduction(flow: float, limit: float, sensitivity: float) -> float:
 
 def make_emulator(
     runs: int = 10_000,
-    seed: int = 42,
+    seed: int = 76,
     scope: str | int = "32",
     network_file: str | Path = DEFAULT_NETWORK_FILE,
     thermal_scale: float = 1.0,
