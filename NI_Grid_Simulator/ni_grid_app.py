@@ -37,6 +37,11 @@ from ni_surplus import (
     surplus_frame_metrics,
     thermal_commitment_by_asset,
 )
+from ni_constraint_stress import (
+    StressTestConfig,
+    group_catalogue,
+    run_stress_test,
+)
 
 ROOT = Path(__file__).resolve().parent
 NETWORK_FILE = ROOT / "data" / "SV2024_northern_ireland.nc"
@@ -45,6 +50,7 @@ ASSET_FILE = ROOT / "data" / "northern_ireland_spatial_supply_and_interconnector
 NETWORK = read_network_nc(NETWORK_FILE)
 ASSETS = map_assets_to_buses(read_spatial_assets(ASSET_FILE), NETWORK.buses)
 MODEL = DCGridModel(NETWORK)
+GROUP_CATALOGUE = group_catalogue(ASSETS, MODEL)
 LINE_CHOICES = NETWORK.lines["branch"].astype(str).tolist()
 BUS_COORD = NETWORK.buses.set_index("bus")[["lon", "lat"]]
 
@@ -424,6 +430,45 @@ def _surplus_summary(frames):
     return "  \n".join(text)
 
 
+
+
+def _renewable_benchmark_table(frames):
+    """Compare the final simulated renewable utilisation with historical SONI NI references.
+
+    The 2024 reference is all renewables; the 2023 reference is wind-only, so the
+    latter is shown as contextual rather than strictly like-for-like.
+    """
+    if not frames:
+        return pd.DataFrame()
+    last = frames[-1]
+    model_util = float(last.renewable_utilisation_pct)
+    model_dd = 100.0 - model_util
+    refs = [
+        {
+            "benchmark": "Current simulation (final frame)",
+            "scope": "Mapped wind + solar in model",
+            "dispatch_down_pct": model_dd,
+            "renewable_utilisation_pct": model_util,
+            "gap_vs_model_pp": 0.0,
+        },
+        {
+            "benchmark": "SONI NI 2024",
+            "scope": "All renewables (historical annual)",
+            "dispatch_down_pct": 25.5,
+            "renewable_utilisation_pct": 74.5,
+            "gap_vs_model_pp": model_util - 74.5,
+        },
+        {
+            "benchmark": "SONI NI 2023",
+            "scope": "Wind only (historical annual)",
+            "dispatch_down_pct": 10.8,
+            "renewable_utilisation_pct": 89.2,
+            "gap_vs_model_pp": model_util - 89.2,
+        },
+    ]
+    return pd.DataFrame(refs).round(2)
+
+
 def run_surplus_scenario(
     market_file,
     timestamp,
@@ -510,12 +555,256 @@ def run_surplus_scenario(
                 "Curtailment means available wind/solar that the system does not accept; line I²R losses are separate."
             ),
         )
-        return initial_plot, _surplus_summary(frames), metrics, peak_lines, assets, commitment_units, frames
+        return initial_plot, _surplus_summary(frames), metrics, _renewable_benchmark_table(frames), peak_lines, assets, commitment_units, frames
     except Exception as e:
         import traceback
         traceback.print_exc()
         blank = go.Figure().update_layout(template="plotly_white", title=f"Renewable surplus error: {e}")
-        return blank, f"**Renewable surplus error:** {e}", pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), []
+        return blank, f"**Renewable surplus error:** {e}", pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), []
+
+
+
+def _stress_group_figure(group_summary: pd.DataFrame):
+    fig = go.Figure()
+    if group_summary is None or group_summary.empty:
+        return fig.update_layout(template="plotly_white", title="No stress-test results yet")
+    d = group_summary.sort_values("group")
+    labels = [f"G{int(g)} · {n}" for g, n in zip(d["group"], d["name"])]
+    fig.add_trace(go.Bar(x=labels, y=d["first_activation_pct"], name="First activation %"))
+    fig.add_trace(go.Bar(x=labels, y=d["activation_pct"], name="Activated at any point %"))
+    fig.update_layout(
+        template="plotly_white",
+        barmode="group",
+        title="Constraint-group activation frequency",
+        yaxis_title="Share of Monte-Carlo runs (%)",
+        xaxis_title="SONI NI WDT group",
+        height=440,
+        margin=dict(l=55, r=20, t=55, b=90),
+    )
+    return fig
+
+
+def _stress_line_figure(line_summary: pd.DataFrame):
+    fig = go.Figure()
+    if line_summary is None or line_summary.empty:
+        return fig.update_layout(template="plotly_white", title="No stress-test results yet")
+    d = line_summary.head(15).iloc[::-1]
+    fig.add_trace(go.Bar(y=d["line"], x=d["overload_pct_of_runs"], orientation="h", name="Overloaded runs %"))
+    fig.add_trace(go.Bar(y=d["line"], x=d["worst_line_pct_of_runs"], orientation="h", name="Worst line runs %"))
+    fig.update_layout(
+        template="plotly_white",
+        barmode="group",
+        title="Most repeatedly stressed transmission lines",
+        xaxis_title="Share of Monte-Carlo runs (%)",
+        yaxis_title="Line",
+        height=560,
+        margin=dict(l=130, r=20, t=55, b=50),
+    )
+    return fig
+
+
+
+
+def _stress_frequency_style(overload_pct: float):
+    if overload_pct > 20.0:
+        return "#b91c1c", 5.2
+    if overload_pct > 10.0:
+        return "#ea580c", 4.2
+    if overload_pct > 3.0:
+        return "#ca8a04", 3.2
+    return "#94a3b8", 2.0
+
+
+def _stress_network_map(line_summary: pd.DataFrame):
+    fig = go.Figure()
+    if line_summary is None or line_summary.empty:
+        return fig.update_layout(template="plotly_white", title="No stress-map results yet")
+    meta = NETWORK.lines.merge(line_summary, left_on="branch", right_on="line", how="left")
+    mid_lon, mid_lat, mid_text, mid_color, mid_size = [], [], [], [], []
+    for _, r in meta.iterrows():
+        if r.bus0 not in BUS_COORD.index or r.bus1 not in BUS_COORD.index:
+            continue
+        a, b = BUS_COORD.loc[r.bus0], BUS_COORD.loc[r.bus1]
+        if not np.all(np.isfinite([a.lon, a.lat, b.lon, b.lat])):
+            continue
+        overload_pct = float(pd.to_numeric(pd.Series([r.get("overload_pct_of_runs", 0.0)]), errors="coerce").fillna(0.0).iloc[0])
+        p95 = float(pd.to_numeric(pd.Series([r.get("p95_loading_pct", 0.0)]), errors="coerce").fillna(0.0).iloc[0])
+        worst_pct = float(pd.to_numeric(pd.Series([r.get("worst_line_pct_of_runs", 0.0)]), errors="coerce").fillna(0.0).iloc[0])
+        max_load = float(pd.to_numeric(pd.Series([r.get("max_loading_pct", 0.0)]), errors="coerce").fillna(0.0).iloc[0])
+        color, width = _stress_frequency_style(overload_pct)
+        fig.add_trace(go.Scatter(
+            x=[a.lon, b.lon], y=[a.lat, b.lat], mode="lines",
+            line=dict(color=color, width=width), hoverinfo="skip", showlegend=False,
+        ))
+        mid_lon.append((a.lon + b.lon) / 2)
+        mid_lat.append((a.lat + b.lat) / 2)
+        mid_text.append(
+            f"<b>{r.branch}</b><br>Overloaded in: {overload_pct:.1f}% of runs"
+            f"<br>Worst line in: {worst_pct:.1f}% of runs"
+            f"<br>95th percentile loading: {p95:.1f}%"
+            f"<br>Maximum loading: {max_load:.1f}%"
+            f"<br>Thermal limit: {float(r.s_nom_mva):.1f} MW"
+        )
+        mid_color.append(color)
+        mid_size.append(7 if overload_pct <= 0 else 10)
+    fig.add_trace(go.Scatter(
+        x=mid_lon, y=mid_lat, mode="markers", text=mid_text,
+        hovertemplate="%{text}<extra></extra>",
+        marker=dict(size=mid_size, color=mid_color, symbol="triangle-up", line=dict(width=0)),
+        showlegend=False,
+    ))
+    plot_buses = NETWORK.buses[np.isfinite(NETWORK.buses["lon"]) & np.isfinite(NETWORK.buses["lat"])].copy()
+    fig.add_trace(go.Scatter(
+        x=plot_buses.lon, y=plot_buses.lat, mode="markers",
+        text=[f"Bus {b}" for b in plot_buses.bus], hovertemplate="%{text}<extra></extra>",
+        marker=dict(size=5, color="#334155", opacity=0.7, line=dict(width=0.4, color="white")),
+        showlegend=False,
+    ))
+    fig.update_layout(
+        title="Stress map — lines repeatedly hit hardest across all Monte-Carlo runs",
+        template="plotly_white", height=720, margin=dict(l=10, r=10, t=60, b=30),
+        xaxis=dict(title="Longitude", showgrid=False, zeroline=False),
+        yaxis=dict(title="Latitude", showgrid=False, zeroline=False, scaleanchor="x", scaleratio=1),
+        hovermode="closest",
+        annotations=[{
+            "text": "Colour shows overload frequency across all runs: grey 0–3% · amber 3–10% · orange 10–20% · red >20%. Hover any line for p95/max loading.",
+            "xref": "paper", "yref": "paper", "x": 0, "y": 1.04, "showarrow": False, "align": "left",
+            "font": {"size": 11, "color": "#475569"},
+        }],
+    )
+    return fig
+
+
+def _stress_worst_case_map(result):
+    fig = go.Figure()
+    if result is None or not getattr(result, "top_cases", None):
+        return fig.update_layout(template="plotly_white", title="No worst-case trial map yet")
+    case = sorted(result.top_cases, key=lambda c: (c["initial_worst_loading_pct"], c["dispatch_down_mw"]), reverse=True)[0]
+    injections = pd.Series(case["initial_injections_mw"], index=MODEL.bus_ids, dtype=float)
+    branches, buses = MODEL.solve(injections, str(case["slack_bus"]), float(case.get("thermal_scale", 1.0)))
+    title = (
+        f"Worst single trial map — run {case['run']}<br><sup>Initial worst line {case['initial_worst_line']} at "
+        f"{case['initial_worst_loading_pct']:.1f}% · dispatch-down {case['dispatch_down_mw']:.1f} MW · {case['activation_sequence']}</sup>"
+    )
+    return make_grid_figure(branches, buses, title)
+
+def _stress_dispatch_benchmark(result):
+    if result is None:
+        return pd.DataFrame()
+    sim = float(result.metadata.get("aggregate_dispatch_down_pct", 0.0))
+    rows = [
+        {
+            "benchmark": "Current stress simulation",
+            "dispatch_down_pct": sim,
+            "renewable_accommodated_pct": 100.0 - sim,
+            "gap_vs_simulation_percentage_points": 0.0,
+            "scope": "Thermal-only Monte-Carlo model",
+        },
+        {
+            "benchmark": "SONI NI 2024 actual",
+            "dispatch_down_pct": 25.5,
+            "renewable_accommodated_pct": 74.5,
+            "gap_vs_simulation_percentage_points": sim - 25.5,
+            "scope": "All renewable sources; historical actual",
+        },
+        {
+            "benchmark": "SONI NI 2023 wind-only context",
+            "dispatch_down_pct": 10.8,
+            "renewable_accommodated_pct": 89.2,
+            "gap_vs_simulation_percentage_points": sim - 10.8,
+            "scope": "Wind-only; contextual, not exactly like-for-like",
+        },
+    ]
+    return pd.DataFrame(rows)
+
+
+def _stress_summary(result):
+    m = result.metadata
+    runs = int(m["runs"])
+    over = int(m["any_initial_overload_runs"])
+    unresolved = int(m["unresolved_runs"])
+    first = result.group_summary.sort_values("first_activation_count", ascending=False).iloc[0]
+    worst = result.line_summary.iloc[0]
+    return "  \n".join([
+        f"**Completed:** **{runs:,} runs** in **{m['elapsed_seconds']:.2f} s** "
+        f"(**{m['runs_per_second']:,.0f} runs/s**) using random seed `{m['seed']}`.",
+        f"**Simulated thermal-only dispatch-down:** **{m.get('aggregate_dispatch_down_pct', 0.0):.2f}%** "
+        f"of pre-dispatch-down renewable generation across all trials. "
+        f"SONI NI 2024 actual all-renewables dispatch-down: **25.5%**; model gap: "
+        f"**{m.get('aggregate_dispatch_down_pct', 0.0) - 25.5:+.2f} percentage points**.",
+        f"**Thermal stress occurred:** **{over:,}/{runs:,} runs ({100*over/runs:.1f}%)** had at least one initial line overload.",
+        f"**Most common first represented group:** **G{int(first.group)} — {first['name']}** "
+        f"at **{first.first_activation_pct:.1f}%** of all runs.",
+        f"**Most repeatedly overloaded line:** `{worst.line}` — overloaded in **{worst.overload_pct_of_runs:.1f}%** of runs; "
+        f"95th-percentile loading **{worst.p95_loading_pct:.1f}%**.",
+        f"**Runs with an overload left after the represented group actions:** **{unresolved:,} ({100*unresolved/runs:.1f}%)**. "
+        "This includes overloads on lines not assigned to these five WDT group proxies, so it is a diagnostic rather than a solver failure.",
+        "**Experiment isolation:** renewable availability is intentionally unbounded; mapped MEC is used only as a spatial weighting prior. "
+        "Total generation equals total demand in every trial. SNSP/inertia, low-demand surplus and economic curtailment are disabled, so group dispatch-down is triggered only by thermal line loading.",
+        "**Group 4 caveat:** All-NI membership is included, but the supplied NI-only network does not contain the Tandragee–Louth tie-lines, "
+        "so Group 4 has no physical thermal trigger in this experiment yet.",
+    ])
+
+
+def run_constraint_group_stress(
+    runs,
+    seed,
+    min_stress_pct,
+    max_stress_pct,
+    stress_thermal_scale,
+    generation_concentration,
+    demand_concentration,
+    batch_size,
+    progress=gr.Progress(track_tqdm=False),
+):
+    try:
+        runs = int(runs)
+        lo = float(min_stress_pct)
+        hi = float(max_stress_pct)
+        if hi < lo:
+            raise ValueError("Maximum generation stress must be greater than or equal to the minimum.")
+        progress(0.0, desc=f"Preparing {runs:,} thermal stress trials")
+
+        def _progress(frac, desc):
+            progress(float(frac), desc=str(desc))
+
+        cfg = StressTestConfig(
+            runs=runs,
+            seed=int(seed),
+            min_generation_pct_of_mec=lo,
+            max_generation_pct_of_mec=hi,
+            thermal_scale=float(stress_thermal_scale),
+            generation_concentration=float(generation_concentration),
+            demand_concentration=float(demand_concentration),
+            batch_size=int(batch_size),
+            max_group_actions=5,
+        )
+        result = run_stress_test(NETWORK, MODEL, ASSETS, cfg, progress=_progress)
+        progress(1.0, desc=f"Completed {runs:,}/{runs:,} runs")
+        worst_runs = result.run_table.sort_values(
+            ["initial_worst_loading_pct", "dispatch_down_mw"], ascending=False
+        ).head(200).round(3)
+        return (
+            _stress_summary(result),
+            _stress_group_figure(result.group_summary),
+            _stress_line_figure(result.line_summary),
+            _stress_network_map(result.line_summary),
+            _stress_worst_case_map(result),
+            _stress_dispatch_benchmark(result).round(3),
+            result.group_catalogue.round(2),
+            result.group_summary.round(3),
+            result.line_summary.head(40).round(3),
+            result.sequence_summary.head(25).round(3),
+            worst_runs,
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        blank = go.Figure().update_layout(template="plotly_white", title=f"Stress-test error: {e}")
+        return (
+            f"**Stress-test error:** {e}", blank, blank, blank, blank, pd.DataFrame(), GROUP_CATALOGUE.round(2),
+            pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(),
+        )
 
 
 def _stream_flow_frames(frames, particle_smoothness, particles_per_line, animation_speed_ms, title, annotation_text=None):
@@ -591,6 +880,60 @@ with gr.Blocks(title="Northern Ireland Grid Constraint Simulator") as demo:
             line_table = gr.Dataframe(interactive=False)
             gr.Markdown("### Active generation / redispatch")
             dispatch_table = gr.Dataframe(interactive=False)
+
+        with gr.Tab("SONI constraint-group stress test"):
+            gr.Markdown(
+                "### Monte-Carlo thermal stress test of the five NI WDT groups\n"
+                "Runs thousands of balanced generation/demand states using the published SONI Northern Ireland constraint-group structure. "
+                "This tab deliberately disables surplus, SNSP/inertia and economic curtailment: **thermal line ratings are the only dispatch-down trigger**. "
+                "Generation availability is unbounded for stress testing; mapped MEC is used only to shape where generation tends to appear."
+            )
+            with gr.Row():
+                stress_runs = gr.Slider(100, 50000, value=10000, step=100, label="Monte-Carlo runs")
+                stress_seed = gr.Number(value=42, precision=0, label="Random seed (repeatability)")
+                stress_batch = gr.Dropdown(choices=[100, 250, 500, 1000, 2000], value=500, label="Batch size (progress update interval)")
+            with gr.Row():
+                stress_min_pct = gr.Slider(10, 400, value=40, step=5, label="Minimum generation stress (% of mapped renewable MEC)")
+                stress_max_pct = gr.Slider(20, 1000, value=120, step=5, label="Maximum generation stress (% of mapped renewable MEC)")
+                stress_thermal_scale = gr.Slider(0.5, 1.5, value=1.0, step=0.01, label="Thermal rating multiplier")
+            with gr.Accordion("Spatial-randomness controls", open=False):
+                gr.Markdown(
+                    "Lower concentration = more extreme geographic clustering from run to run. Higher concentration = patterns stay closer to the mapped MEC/load-share distribution."
+                )
+                with gr.Row():
+                    stress_gen_conc = gr.Slider(2, 150, value=35, step=1, label="Generation spatial concentration")
+                    stress_dem_conc = gr.Slider(5, 400, value=120, step=5, label="Demand spatial concentration")
+            with gr.Row():
+                stress_btn = gr.Button("Run thermal stress test", variant="primary")
+                stress_stop = gr.Button("Stop")
+            stress_summary = gr.Markdown(
+                "Choose the number of runs and press **Run thermal stress test**. The Gradio progress indicator shows completed runs, throughput and ETA."
+            )
+            with gr.Row():
+                stress_group_plot = gr.Plot(label="Constraint-group activation frequency")
+                stress_line_plot = gr.Plot(label="Most stressed lines")
+            with gr.Row():
+                stress_map_plot = gr.Plot(label="Stress map across all runs")
+                stress_worst_map = gr.Plot(label="Worst individual trial map")
+            gr.Markdown(
+                "### Dispatch-down percentage versus SONI history\n"
+                "The model percentage is total renewable MW dispatched down divided by total pre-dispatch-down renewable MW across all Monte-Carlo trials. "
+                "SONI 2024 is the main real-world comparison; 2023 is wind-only context."
+            )
+            stress_dispatch_benchmark = gr.Dataframe(interactive=False)
+            gr.Markdown(
+                "### Five SONI Northern Ireland groups represented in the experiment\n"
+                "Group 4 membership is present, but its Tandragee–Louth thermal trigger cannot be solved physically until the cross-border tie-line is added to this NI-only network."
+            )
+            stress_catalogue = gr.Dataframe(value=GROUP_CATALOGUE.round(2), interactive=False)
+            gr.Markdown("### Which group activates first / most often")
+            stress_group_table = gr.Dataframe(interactive=False)
+            gr.Markdown("### Lines hit hardest across repeated runs")
+            stress_line_table = gr.Dataframe(interactive=False)
+            gr.Markdown("### Most common group activation sequences")
+            stress_sequence_table = gr.Dataframe(interactive=False)
+            gr.Markdown("### 200 most severe individual trials")
+            stress_worst_runs = gr.Dataframe(interactive=False)
 
         with gr.Tab("Dynamic demand shock"):
             gr.Markdown(
@@ -713,6 +1056,12 @@ with gr.Blocks(title="Northern Ireland Grid Constraint Simulator") as demo:
                 surplus_pause = gr.Button("⏸ Pause")
             gr.Markdown("### Renewable utilisation / curtailment progression")
             surplus_metrics = gr.Dataframe(interactive=False)
+            gr.Markdown(
+                "### Historical SONI benchmark comparison\n"
+                "The model's final renewable utilisation is compared with NI historical dispatch-down references. "
+                "2024 is an all-renewables reference; 2023 is wind-only, so treat the latter as contextual rather than exactly like-for-like."
+            )
+            surplus_benchmark = gr.Dataframe(interactive=False)
             gr.Markdown("### Lines with highest loading during the surplus event")
             surplus_peak_lines = gr.Dataframe(interactive=False)
             gr.Markdown("### Final wind/solar potential versus accepted generation")
@@ -726,6 +1075,19 @@ with gr.Blocks(title="Northern Ireland Grid Constraint Simulator") as demo:
         inputs=[market_file, timestamp, thermal_scale, override_line, override_limit, auto_redispatch, allow_load_shed],
         outputs=[base_plot, constrained_plot, summary, line_table, dispatch_table],
     )
+    stress_event = stress_btn.click(
+        run_constraint_group_stress,
+        inputs=[
+            stress_runs, stress_seed, stress_min_pct, stress_max_pct, stress_thermal_scale,
+            stress_gen_conc, stress_dem_conc, stress_batch,
+        ],
+        outputs=[
+            stress_summary, stress_group_plot, stress_line_plot, stress_map_plot, stress_worst_map, stress_dispatch_benchmark, stress_catalogue,
+            stress_group_table, stress_line_table, stress_sequence_table, stress_worst_runs,
+        ],
+        show_progress="full",
+    )
+    stress_stop.click(fn=None, cancels=[stress_event])
     preset.change(
         apply_dynamic_preset,
         inputs=[preset],
@@ -763,7 +1125,7 @@ with gr.Blocks(title="Northern Ireland Grid Constraint Simulator") as demo:
             surplus_line, surplus_limit, surplus_redispatch, commitment_enabled, max_nonsynchronous_share,
             min_sync_units, min_stable_output, shutdown_strategy, surplus_smoothness, surplus_particles, surplus_speed,
         ],
-        outputs=[surplus_plot, surplus_summary, surplus_metrics, surplus_peak_lines, surplus_assets, surplus_commitment, surplus_frames_state],
+        outputs=[surplus_plot, surplus_summary, surplus_metrics, surplus_benchmark, surplus_peak_lines, surplus_assets, surplus_commitment, surplus_frames_state],
     )
 
     surplus_play_event = surplus_play.click(
