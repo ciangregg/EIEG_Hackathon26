@@ -2,3 +2,6 @@ pypsa
 pandas
 matplotlib
 folium
+numba
+gradio
+h5py
