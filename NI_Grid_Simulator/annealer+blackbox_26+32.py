@@ -227,8 +227,8 @@ def estimate_temperature_range_blackbox(
 def sim_annealing_grouping(
     nodes,
     blackbox,
-    alpha=0.95,
-    sweeps_per_temp=20,
+    alpha=0.9,
+    sweeps_per_temp=10,
     n_temperature_samples=20,
     hot_accept_prob=0.5,
     cold_accept_prob=1e-3,

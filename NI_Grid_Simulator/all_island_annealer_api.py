@@ -46,7 +46,7 @@ from ni_grid_core import DCGridModel, NetworkData, read_network_nc
 
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_NETWORK_FILE = ROOT / "data" / "WP2033_all-island.nc"
+DEFAULT_NETWORK_FILE = ROOT / "data" / "SV2024_all-island.nc"
 DEFAULT_NODES_26 = ROOT / "outputs" / "annealer_nodes_26_counties_exclusive.csv"
 DEFAULT_NODES_32 = ROOT / "outputs" / "annealer_nodes_32_counties_exclusive.csv"
 EPS = 1e-9
