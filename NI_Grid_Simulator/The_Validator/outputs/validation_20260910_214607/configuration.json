@@ -1,0 +1,116 @@
+{
+  "preset": "standard",
+  "scopes": [
+    "26",
+    "32"
+  ],
+  "weather_seeds": [
+    42,
+    77,
+    123,
+    202,
+    314
+  ],
+  "anneal_seeds": [
+    1,
+    2,
+    3
+  ],
+  "anneal_evals": 5000,
+  "temperature_probes": 40,
+  "runs": 10000,
+  "optimisation_security_threshold_pct": 90.0,
+  "optimisation_max_states": 800,
+  "scenarios": [
+    {
+      "include_n1": false,
+      "thermal_scale": 1.0,
+      "demand_scale": 1.0,
+      "wind_scale": 1.0,
+      "solar_scale": 1.0,
+      "security_threshold_pct": 90.0,
+      "max_security_states": 800,
+      "scenario": "intact_nominal"
+    },
+    {
+      "include_n1": true,
+      "thermal_scale": 1.0,
+      "demand_scale": 1.0,
+      "wind_scale": 1.0,
+      "solar_scale": 1.0,
+      "security_threshold_pct": 90.0,
+      "max_security_states": 800,
+      "scenario": "n1_nominal"
+    },
+    {
+      "include_n1": true,
+      "thermal_scale": 1.0,
+      "demand_scale": 1.0,
+      "wind_scale": 1.0,
+      "solar_scale": 1.0,
+      "security_threshold_pct": 70.0,
+      "max_security_states": 3000,
+      "scenario": "n1_strict_screen"
+    },
+    {
+      "include_n1": true,
+      "thermal_scale": 0.95,
+      "demand_scale": 1.0,
+      "wind_scale": 1.0,
+      "solar_scale": 1.0,
+      "security_threshold_pct": 90.0,
+      "max_security_states": 800,
+      "scenario": "n1_tight_limits"
+    },
+    {
+      "include_n1": true,
+      "thermal_scale": 1.05,
+      "demand_scale": 1.0,
+      "wind_scale": 1.0,
+      "solar_scale": 1.0,
+      "security_threshold_pct": 90.0,
+      "max_security_states": 800,
+      "scenario": "n1_relaxed_limits"
+    },
+    {
+      "include_n1": true,
+      "thermal_scale": 1.0,
+      "demand_scale": 0.9,
+      "wind_scale": 1.0,
+      "solar_scale": 1.0,
+      "security_threshold_pct": 90.0,
+      "max_security_states": 800,
+      "scenario": "n1_low_demand"
+    },
+    {
+      "include_n1": true,
+      "thermal_scale": 1.0,
+      "demand_scale": 1.1,
+      "wind_scale": 1.0,
+      "solar_scale": 1.0,
+      "security_threshold_pct": 90.0,
+      "max_security_states": 800,
+      "scenario": "n1_high_demand"
+    },
+    {
+      "include_n1": true,
+      "thermal_scale": 1.0,
+      "demand_scale": 1.0,
+      "wind_scale": 1.15,
+      "solar_scale": 1.0,
+      "security_threshold_pct": 90.0,
+      "max_security_states": 800,
+      "scenario": "n1_wind_heavy"
+    },
+    {
+      "include_n1": true,
+      "thermal_scale": 1.0,
+      "demand_scale": 1.0,
+      "wind_scale": 1.0,
+      "solar_scale": 1.25,
+      "security_threshold_pct": 90.0,
+      "max_security_states": 800,
+      "scenario": "n1_solar_heavy"
+    }
+  ]
+}
