@@ -21,27 +21,25 @@ OUTPUT_DIR = BASE_DIR / "outputs"
 @njit
 def propose_swap(grouping):
     """
-    Pick two nodes belonging to different groups and swap
-    their group memberships.
+    Pick two nodes belonging to different groups
+    and swap their group assignments.
 
-    Because this is a swap, the number of nodes in each
-    group is preserved.
+    The number of nodes in each group is therefore
+    preserved.
     """
 
     candidate = grouping.copy()
 
     n = len(grouping)
 
-    # Pick two nodes
     i = np.random.randint(0, n)
     j = np.random.randint(0, n)
 
-    # Make sure they are different nodes and different groups
     while i == j or candidate[i] == candidate[j]:
+
         i = np.random.randint(0, n)
         j = np.random.randint(0, n)
 
-    # Swap their group assignments
     temp = candidate[i]
     candidate[i] = candidate[j]
     candidate[j] = temp
@@ -50,13 +48,19 @@ def propose_swap(grouping):
 
 
 # ============================================================
-# 2. CONVERT GROUPING -> NODES DATAFRAME
+# 2. CONVERT INTEGER GROUPING -> NODES DATAFRAME
 # ============================================================
 
 def grouping_to_nodes(grouping, nodes):
     """
-    Convert the NumPy grouping used by the annealer into
-    the DataFrame format expected by dispatch_down().
+    Convert the integer grouping used by the annealer into
+    the tuple representation expected by the emulator.
+
+    Example:
+
+        4 -> (4,)
+        2 -> (2,)
+        1 -> (1,)
     """
 
     candidate = nodes.copy(deep=True)
@@ -75,11 +79,7 @@ def grouping_to_nodes(grouping, nodes):
 
 def energy(grouping, nodes, blackbox):
     """
-    Calculate the energy of a grouping.
-
-    Energy = dispatch-down percentage.
-
-    Lower energy is better.
+    Evaluate the dispatch-down for a proposed grouping.
     """
 
     candidate = grouping_to_nodes(
@@ -104,16 +104,16 @@ def estimate_temperature_range_blackbox(
     verbose=True
 ):
     """
-    Probe the black box with random swaps to estimate
-    sensible starting and ending temperatures.
+    Estimate a useful starting and ending temperature
+    from the energy scale of random swap moves.
 
-    Uses:
+    T_start is chosen so that a typical uphill move
+    has approximately hot_accept_prob probability of
+    being accepted.
 
-        P = exp(-dE / T)
-
-    therefore:
-
-        T = -dE / ln(P)
+    T_end is chosen so that a small uphill move has
+    approximately cold_accept_prob probability of
+    being accepted.
     """
 
     E = energy(
@@ -126,10 +126,10 @@ def estimate_temperature_range_blackbox(
 
     for sample in range(n_samples):
 
-        # Propose a random swap
-        candidate = propose_swap(grouping)
+        candidate = propose_swap(
+            grouping
+        )
 
-        # Evaluate it
         E_new = energy(
             candidate,
             nodes,
@@ -141,11 +141,12 @@ def estimate_temperature_range_blackbox(
         if dE > 0:
             dEs.append(dE)
 
-        # Continue random walk
+        # Random walk for probing only
         grouping = candidate
         E = E_new
 
         if verbose:
+
             print(
                 f"  Temperature probe "
                 f"{sample + 1}/{n_samples} | "
@@ -155,30 +156,27 @@ def estimate_temperature_range_blackbox(
     dEs = np.array(dEs)
 
     if len(dEs) == 0:
+
         raise RuntimeError(
             "No non-zero energy changes were found "
             "during temperature estimation."
         )
 
-    # Typical change
     dE_typical = np.percentile(
         dEs,
         50
     )
 
-    # Small change
     dE_small = np.percentile(
         dEs,
         5
     )
 
-    # Initial temperature
     T_start = (
         -dE_typical
         / np.log(hot_accept_prob)
     )
 
-    # Final temperature
     T_end = (
         -dE_small
         / np.log(cold_accept_prob)
@@ -202,28 +200,31 @@ def sim_annealing_grouping(
     verbose=True
 ):
     """
-    Simulated annealing over constraint-group assignments.
+    Simulated annealing over exclusive integer group
+    assignments.
 
-    Starts from the existing SONI grouping.
+    Each node has exactly one integer group:
 
-    Each move swaps the groups of two nodes, so group sizes
-    remain fixed.
+        grouping[i] = 1, 2, 3, ...
+
+    A move swaps the groups of two nodes, preserving
+    the number of nodes in each group.
     """
 
     # --------------------------------------------------------
-    # Convert DataFrame groups into NumPy array
+    # INITIAL GROUPING
     # --------------------------------------------------------
 
     grouping = np.array(
         [
-            groups[0]
+            int(groups[0])
             for groups in nodes["groups"]
         ],
         dtype=np.int64
     )
 
     # --------------------------------------------------------
-    # Initial energy
+    # INITIAL ENERGY
     # --------------------------------------------------------
 
     E = energy(
@@ -232,10 +233,12 @@ def sim_annealing_grouping(
         blackbox
     )
 
+    # Keep a separate copy so it never changes
+    initial_E = E
+
     best_grouping = grouping.copy()
     best_E = E
 
-    # Count expensive black-box calls
     blackbox_calls = 1
 
     print()
@@ -245,7 +248,7 @@ def sim_annealing_grouping(
 
     print(
         f"Starting energy: "
-        f"{E:.4f}%"
+        f"{initial_E:.4f}%"
     )
 
     print(
@@ -259,7 +262,7 @@ def sim_annealing_grouping(
     )
 
     # --------------------------------------------------------
-    # Show group sizes
+    # INITIAL GROUP SIZES
     # --------------------------------------------------------
 
     unique_groups, counts = np.unique(
@@ -274,13 +277,14 @@ def sim_annealing_grouping(
         unique_groups,
         counts
     ):
+
         print(
             f"  Group {group}: "
             f"{count} nodes"
         )
 
     # --------------------------------------------------------
-    # Estimate temperature range
+    # TEMPERATURE ESTIMATION
     # --------------------------------------------------------
 
     print()
@@ -300,7 +304,6 @@ def sim_annealing_grouping(
         )
     )
 
-    # Add temperature-probe calls
     blackbox_calls += n_temperature_samples
 
     print()
@@ -317,7 +320,7 @@ def sim_annealing_grouping(
     )
 
     # --------------------------------------------------------
-    # Annealing
+    # BEGIN ANNEALING
     # --------------------------------------------------------
 
     print()
@@ -339,17 +342,15 @@ def sim_annealing_grouping(
         improved = 0
 
         # ----------------------------------------------------
-        # Moves at this temperature
+        # SWAPS AT CURRENT TEMPERATURE
         # ----------------------------------------------------
 
         for _ in range(sweeps_per_temp):
 
-            # Propose new grouping
             candidate = propose_swap(
                 grouping
             )
 
-            # Evaluate candidate
             E_new = energy(
                 candidate,
                 nodes,
@@ -358,11 +359,10 @@ def sim_annealing_grouping(
 
             blackbox_calls += 1
 
-            # Energy difference
             dE = E_new - E
 
             # ------------------------------------------------
-            # Metropolis criterion
+            # METROPOLIS ACCEPTANCE
             # ------------------------------------------------
 
             if (
@@ -372,19 +372,18 @@ def sim_annealing_grouping(
             ):
 
                 grouping = candidate
+
                 E = E_new
 
                 accepted += 1
 
                 # ------------------------------------------------
-                # New global best?
+                # NEW BEST
                 # ------------------------------------------------
 
                 if E < best_E:
 
-                    best_grouping = (
-                        grouping.copy()
-                    )
+                    best_grouping = grouping.copy()
 
                     best_E = E
 
@@ -396,15 +395,16 @@ def sim_annealing_grouping(
                     )
 
         # ----------------------------------------------------
-        # Acceptance rate
+        # ACCEPTANCE RATE
         # ----------------------------------------------------
 
         acceptance_rate = (
-            accepted / sweeps_per_temp
+            accepted
+            / sweeps_per_temp
         )
 
         # ----------------------------------------------------
-        # Save history
+        # SAVE HISTORY
         # ----------------------------------------------------
 
         history.append(
@@ -436,7 +436,7 @@ def sim_annealing_grouping(
         )
 
         # ----------------------------------------------------
-        # PRINT PROGRESS
+        # PROGRESS OUTPUT
         # ----------------------------------------------------
 
         print(
@@ -450,13 +450,13 @@ def sim_annealing_grouping(
         )
 
         # ----------------------------------------------------
-        # Cool system
+        # COOL
         # ----------------------------------------------------
 
         T *= alpha
 
     # ========================================================
-    # CONVERT BEST GROUPING BACK TO DATAFRAME
+    # CONVERT BEST INTEGER GROUPING BACK TO DATAFRAME
     # ========================================================
 
     best_nodes = grouping_to_nodes(
@@ -464,15 +464,19 @@ def sim_annealing_grouping(
         nodes
     )
 
+    # ========================================================
+    # FINAL OUTPUT
+    # ========================================================
+
     print()
     print("=" * 60)
     print("ANNEALING FINISHED")
     print("=" * 60)
 
     print(
-    f"Initial energy: "
-    f"{E:.4f}%"
-)
+        f"Initial energy: "
+        f"{initial_E:.4f}%"
+    )
 
     print(
         f"Best energy: "
@@ -506,7 +510,7 @@ dispatch_down, _ = make_emulator(
 
 
 # ============================================================
-# 7. LOAD CURRENT NODE / CONSTRAINT GROUP CONFIGURATION
+# 7. LOAD CURRENT NODE CONFIGURATION
 # ============================================================
 
 nodes = pd.read_csv(
@@ -515,13 +519,13 @@ nodes = pd.read_csv(
 
 
 # ============================================================
-# 8. CONVERT GROUP STRINGS INTO TUPLES
+# 8. CONVERT CSV GROUP STRINGS TO TUPLES
 # ============================================================
 
 nodes["groups"] = nodes["groups"].apply(
     lambda x: tuple(
-        int(g)
-        for g in x.strip("()").split(",")
+        int(g.strip())
+        for g in str(x).strip("()").split(",")
         if g.strip()
     )
 )
@@ -566,18 +570,6 @@ print(
 # ============================================================
 # 10. SMALL TEST
 # ============================================================
-#
-# IMPORTANT:
-#
-# This is deliberately a SMALL test.
-#
-# Once this works, we can increase:
-#
-#   n_temperature_samples
-#   sweeps_per_temp
-#   alpha
-#
-# ============================================================
 
 best_nodes, best_dispatch_down, history = (
     sim_annealing_grouping(
@@ -586,13 +578,11 @@ best_nodes, best_dispatch_down, history = (
 
         blackbox=dispatch_down,
 
-        # Fast cooling for test
+        # Small test settings
         alpha=0.80,
 
-        # Only 3 moves per temperature
         sweeps_per_temp=3,
 
-        # Only 5 expensive calls to probe T
         n_temperature_samples=5,
 
         hot_accept_prob=0.5,
