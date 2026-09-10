@@ -39,8 +39,15 @@ from ni_surplus import (
 )
 from ni_constraint_stress import (
     StressTestConfig,
+    SONI_GROUPS,
     group_catalogue,
     run_stress_test,
+)
+from ni_baseline_replica import (
+    SONI_2024_ALL_RENEWABLE_DD_PCT,
+    current_operational_config,
+    export_handoff_pack,
+    run_baseline_replica,
 )
 
 ROOT = Path(__file__).resolve().parent
@@ -807,6 +814,203 @@ def run_constraint_group_stress(
         )
 
 
+
+
+
+
+_GROUP_COLORS = {1: "#ef4444", 2: "#3b82f6", 3: "#22c55e", 4: "#8b5cf6", 5: "#f59e0b"}
+_GROUP_SYMBOLS = {1: "circle", 2: "square", 3: "diamond", 4: "circle-open", 5: "triangle-up"}
+_GROUP_JITTER = {1: (-0.010, 0.006), 2: (0.010, 0.006), 3: (0.010, -0.006), 4: (0.0, 0.0), 5: (-0.010, -0.006)}
+
+
+def _base_network_backdrop(fig):
+    for _, r in NETWORK.lines.iterrows():
+        if r.bus0 not in BUS_COORD.index or r.bus1 not in BUS_COORD.index:
+            continue
+        a, b = BUS_COORD.loc[r.bus0], BUS_COORD.loc[r.bus1]
+        if not np.all(np.isfinite([a.lon, a.lat, b.lon, b.lat])):
+            continue
+        fig.add_trace(go.Scatter(
+            x=[a.lon, b.lon], y=[a.lat, b.lat], mode="lines",
+            line=dict(color="#d1d5db", width=1.3), hoverinfo="skip", showlegend=False,
+        ))
+    plot_buses = NETWORK.buses[np.isfinite(NETWORK.buses["lon"]) & np.isfinite(NETWORK.buses["lat"])].copy()
+    fig.add_trace(go.Scatter(
+        x=plot_buses.lon, y=plot_buses.lat, mode="markers",
+        text=[f"Bus {b}" for b in plot_buses.bus], hovertemplate="%{text}<extra></extra>",
+        marker=dict(size=4, color="#94a3b8", opacity=0.55, line=dict(width=0.3, color="white")),
+        showlegend=False,
+    ))
+
+
+def _baseline_group_map(result):
+    fig = go.Figure()
+    if result is None or result.membership_table is None or result.membership_table.empty:
+        return fig.update_layout(template="plotly_white", title="Run the NI baseline first")
+    _base_network_backdrop(fig)
+    renew = ASSETS[ASSETS["market_bucket"].isin(["wind", "solar"])].copy()
+    renew = renew[np.isfinite(pd.to_numeric(renew["latitude"], errors="coerce")) & np.isfinite(pd.to_numeric(renew["longitude"], errors="coerce"))]
+    fig.add_trace(go.Scatter(
+        x=renew["longitude"], y=renew["latitude"], mode="markers",
+        text=[f"{r.point_name}<br>{str(r.market_bucket).title()} · MEC {float(r.max_export_capacity_mw):.1f} MW" for r in renew.itertuples()],
+        hovertemplate="%{text}<extra></extra>",
+        marker=dict(size=7, color="#e5e7eb", opacity=0.55, line=dict(width=0.3, color="#9ca3af")),
+        name="All mapped renewables",
+    ))
+    for gid in [1, 2, 3, 5, 4]:
+        sub = result.membership_table[result.membership_table["group"].eq(gid)].copy()
+        sub = sub[np.isfinite(sub["latitude"]) & np.isfinite(sub["longitude"])]
+        if sub.empty:
+            continue
+        dx, dy = _GROUP_JITTER.get(gid, (0.0, 0.0))
+        fig.add_trace(go.Scatter(
+            x=sub["longitude"] + dx,
+            y=sub["latitude"] + dy,
+            mode="markers",
+            text=[
+                f"<b>{r.asset}</b><br>G{gid} — {r.group_name}<br>Bus {r.bus}<br>MEC {float(r.mec_mw):.1f} MW"
+                for r in sub.itertuples()
+            ],
+            hovertemplate="%{text}<extra></extra>",
+            marker=dict(
+                size=12 if gid != 4 else 10,
+                color=_GROUP_COLORS[gid],
+                opacity=0.88 if gid != 4 else 0.65,
+                symbol=_GROUP_SYMBOLS[gid],
+                line=dict(width=1.0 if gid != 4 else 1.8, color=_GROUP_COLORS[gid]),
+            ),
+            name=f"G{gid} — {SONI_GROUPS[gid]['name']}",
+        ))
+    fig.update_layout(
+        title="Current SONI NI renewable constraint groups",
+        template="plotly_white", height=720,
+        margin=dict(l=10, r=10, t=65, b=35),
+        xaxis=dict(title="Longitude", showgrid=False, zeroline=False),
+        yaxis=dict(title="Latitude", showgrid=False, zeroline=False, scaleanchor="x", scaleratio=1),
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0.0),
+        hovermode="closest",
+        annotations=[{
+            "text": "Group 4 is All NI and overlaps all controllable renewable assets; it is shown as purple open circles.",
+            "xref": "paper", "yref": "paper", "x": 0, "y": 1.06,
+            "showarrow": False, "align": "left", "font": {"size": 11, "color": "#475569"},
+        }],
+    )
+    return fig
+
+
+def _baseline_line_map(result):
+    fig = go.Figure()
+    if result is None or result.physical.line_summary is None or result.physical.line_summary.empty:
+        return fig.update_layout(template="plotly_white", title="Run the NI baseline first")
+    ls = result.physical.line_summary.rename(columns={
+        "line": "line",
+        "overload_pct_before_group_actions": "overload_pct_of_runs",
+        "max_initial_loading_pct": "max_loading_pct",
+        "mean_initial_loading_pct": "p95_loading_pct",
+    }).copy()
+    # Reuse the stress-map renderer.  Here the hover's "p95" slot is labelled by
+    # the renderer but contains mean initial loading, so create a more exact map below.
+    meta = NETWORK.lines.merge(result.physical.line_summary, left_on="branch", right_on="line", how="left")
+    mids=[]
+    for _, r in meta.iterrows():
+        if r.bus0 not in BUS_COORD.index or r.bus1 not in BUS_COORD.index:
+            continue
+        a,b=BUS_COORD.loc[r.bus0],BUS_COORD.loc[r.bus1]
+        if not np.all(np.isfinite([a.lon,a.lat,b.lon,b.lat])):
+            continue
+        ov=float(pd.to_numeric(pd.Series([r.get("overload_pct_before_group_actions",0)]),errors="coerce").fillna(0).iloc[0])
+        mx=float(pd.to_numeric(pd.Series([r.get("max_initial_loading_pct",0)]),errors="coerce").fillna(0).iloc[0])
+        mn=float(pd.to_numeric(pd.Series([r.get("mean_initial_loading_pct",0)]),errors="coerce").fillna(0).iloc[0])
+        color,width=_stress_frequency_style(ov)
+        fig.add_trace(go.Scatter(x=[a.lon,b.lon],y=[a.lat,b.lat],mode="lines",line=dict(color=color,width=width),hoverinfo="skip",showlegend=False))
+        mids.append(((a.lon+b.lon)/2,(a.lat+b.lat)/2,str(r.branch),ov,mn,mx,color))
+    if mids:
+        fig.add_trace(go.Scatter(
+            x=[x[0] for x in mids], y=[x[1] for x in mids], mode="markers",
+            text=[f"<b>{x[2]}</b><br>Initially overloaded in {x[3]:.1f}% of cases<br>Mean initial loading {x[4]:.1f}%<br>Maximum initial loading {x[5]:.1f}%" for x in mids],
+            hovertemplate="%{text}<extra></extra>",
+            marker=dict(size=[10 if x[3]>0 else 6 for x in mids], color=[x[6] for x in mids], symbol="triangle-up", line=dict(width=0)),
+            showlegend=False,
+        ))
+    fig.update_layout(
+        title="Current-grid stress map before constraint-group actions",
+        template="plotly_white", height=720, margin=dict(l=10,r=10,t=60,b=35),
+        xaxis=dict(title="Longitude",showgrid=False,zeroline=False),
+        yaxis=dict(title="Latitude",showgrid=False,zeroline=False,scaleanchor="x",scaleratio=1), hovermode="closest",
+    )
+    return fig
+
+
+def _baseline_metric_table(result):
+    m=result.metrics
+    return pd.DataFrame([
+        {"metric":"Physical model dispatch-down", "value_pct":m["physical_dispatch_down_pct"], "meaning":"Explicit NI-only operational/network model"},
+        {"metric":"Fixed calibration residual", "value_pct":m["calibration_residual_pct"], "meaning":"Unmodelled effects; frozen for downstream work"},
+        {"metric":"Calibrated total dispatch-down", "value_pct":m["calibrated_dispatch_down_pct"], "meaning":"Baseline headline dispatch-down"},
+        {"metric":"Calibrated renewable utilisation", "value_pct":m["calibrated_renewable_utilisation_pct"], "meaning":"Available renewable energy accommodated"},
+        {"metric":"Estimated transmission electrical efficiency", "value_pct":m["electrical_efficiency_pct"], "meaning":"Diagnostic I²R line-loss efficiency; separate from dispatch-down"},
+        {"metric":"Represented security pass rate", "value_pct":m["represented_security_pass_pct"], "meaning":"Published corridor/security-state checks"},
+        {"metric":"All-line N-1 pass rate", "value_pct":m["all_line_n1_pass_pct"], "meaning":"DC N-1 thermal diagnostic"},
+    ])
+
+
+def _baseline_dd_figure(result):
+    m=result.metrics
+    fig=go.Figure()
+    fig.add_trace(go.Bar(
+        x=["Physical model", "Calibration residual", "Calibrated baseline", "SONI 2024 actual"],
+        y=[m["physical_dispatch_down_pct"], m["calibration_residual_pct"], m["calibrated_dispatch_down_pct"], SONI_2024_ALL_RENEWABLE_DD_PCT],
+        name="Dispatch-down %",
+    ))
+    fig.update_layout(template="plotly_white", title="NI renewable dispatch-down baseline calibration", yaxis_title="Dispatch-down (% of available renewable energy)", height=430, margin=dict(l=55,r=20,t=55,b=50))
+    return fig
+
+
+def _baseline_summary(result):
+    m=result.metrics
+    cal_note=("matched" if m.get("calibration_exact") else "could not fully match")
+    return "  \n".join([
+        f"**Frozen NI operating cases:** **{int(m['runs']):,}**.",
+        f"**Physical NI-only model:** dispatch-down **{m['physical_dispatch_down_pct']:.2f}%**; renewable utilisation **{m['physical_renewable_utilisation_pct']:.2f}%**.",
+        f"**Calibration residual:** **{m['calibration_residual_pct']:.2f}%**. This is fixed per scenario and represents effects the supplied NI-only DC model cannot explicitly reproduce.",
+        f"**Calibrated baseline:** dispatch-down **{m['calibrated_dispatch_down_pct']:.2f}%** and renewable utilisation **{m['calibrated_renewable_utilisation_pct']:.2f}%** — {cal_note} to the selected historical target.",
+        f"**Network/group component actually represented by the model:** **{m['network_group_dispatch_down_pct']:.2f}%** of available renewable energy.",
+        f"**Estimated electrical transmission efficiency:** **{m['electrical_efficiency_pct']:.2f}%**. This is an I²R diagnostic and is not the same thing as renewable utilisation.",
+        f"**Security diagnostics:** represented published states **{m['represented_security_pass_pct']:.1f}%** secure; all-line N-1 thermal diagnostic **{m['all_line_n1_pass_pct']:.1f}%** secure after current-group actions.",
+        "**Handoff rule:** a future annealer should keep the frozen operating cases and `calibration_residual_mw` unchanged, and alter only the group-policy/network dispatch-down component. This makes any claimed saving attributable to changed constraint groups rather than to re-calibration.",
+    ])
+
+
+def run_current_grid_baseline(
+    base_runs, base_seed, base_demand_scale, base_thermal_scale, base_outage_exposure,
+    base_target_dd, base_calibrate, progress=gr.Progress(track_tqdm=False),
+):
+    try:
+        cfg=current_operational_config(
+            runs=int(base_runs), seed=int(base_seed), demand_scale=float(base_demand_scale),
+            thermal_scale=float(base_thermal_scale), planned_outage_exposure_pct=float(base_outage_exposure),
+        )
+        def _progress(frac, desc):
+            progress(float(np.clip(frac,0,1)), desc=str(desc))
+        result=run_baseline_replica(
+            NETWORK, MODEL, ASSETS, cfg,
+            target_dispatch_down_pct=float(base_target_dd), calibrate=bool(base_calibrate), progress=_progress,
+        )
+        progress(0.94, desc="Exporting frozen baseline handoff pack")
+        handoff=export_handoff_pack(result, ROOT / "outputs", stem=f"ni_baseline_handoff_seed{int(base_seed)}_runs{int(base_runs)}")
+        progress(1.0, desc="NI current-grid baseline complete")
+        worst=result.calibrated_run_table.sort_values(["calibrated_dispatch_down_pct_of_case","worst_n1_loading_pct"],ascending=False).head(200).round(3)
+        return (
+            _baseline_summary(result), _baseline_dd_figure(result), _baseline_group_map(result), _baseline_line_map(result),
+            _baseline_metric_table(result).round(4), result.calibration_table.round(4),
+            result.physical.group_summary.round(4), result.physical.line_summary.head(40).round(3), worst, handoff,
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        blank=go.Figure().update_layout(template="plotly_white",title=f"Baseline error: {e}")
+        return (f"**Baseline error:** {e}", blank, blank, blank, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), None)
+
 def _stream_flow_frames(frames, particle_smoothness, particles_per_line, animation_speed_ms, title, annotation_text=None):
     """Yield ordinary gr.Plot figures so animation works reliably in Gradio."""
     if not frames:
@@ -934,6 +1138,50 @@ with gr.Blocks(title="Northern Ireland Grid Constraint Simulator") as demo:
             stress_sequence_table = gr.Dataframe(interactive=False)
             gr.Markdown("### 200 most severe individual trials")
             stress_worst_runs = gr.Dataframe(interactive=False)
+
+        with gr.Tab("NI current-grid baseline"):
+            gr.Markdown(
+                "### Northern Ireland current-policy baseline emulator\n"
+                "This is the handoff model: **no annealing or group optimisation is performed here**. It uses the five current/published NI renewable constraint groups, "
+                "DC transmission flows, N-1 thermal security, a 75% SNSP-style ceiling, a two-machine NI synchronous floor, North-South and Moyle limits, "
+                "minimum stable thermal output and planned-outage exposure. The aggregate dispatch-down result can be calibrated to SONI's latest published annual NI benchmark."
+            )
+            gr.Markdown(
+                "**Important model boundary:** the supplied transmission NetCDF is an NI-only 2024 network and does not contain the full Republic of Ireland AC system or the physical Louth tie-line. "
+                "The calibration residual is therefore kept explicit rather than silently weakening line ratings to force a match."
+            )
+            with gr.Row():
+                base_runs=gr.Slider(500,20000,value=10000,step=500,label="Frozen operating cases")
+                base_seed=gr.Number(value=42,precision=0,label="Random seed")
+                base_demand_scale=gr.Slider(1.5,2.5,value=2.10,step=0.01,label="Annual demand scale")
+            with gr.Row():
+                base_thermal_scale=gr.Slider(0.8,1.2,value=1.0,step=0.01,label="Transmission thermal-rating multiplier")
+                base_outage_exposure=gr.Slider(0,40,value=5,step=1,label="Key-corridor planned-outage exposure (% cases)")
+                base_target_dd=gr.Dropdown(
+                    choices=[25.5,29.6,16.9], value=25.5,
+                    label="Aggregate calibration target (%)",
+                    info="25.5 = SONI NI 2024 all renewables; 29.6 = NI wind; 16.9 = NI solar",
+                )
+            base_calibrate=gr.Checkbox(value=True,label="Apply explicit fixed residual so aggregate dispatch-down matches the selected SONI benchmark")
+            with gr.Row():
+                base_run_btn=gr.Button("Run NI baseline replica",variant="primary")
+                base_stop_btn=gr.Button("Stop")
+            base_summary=gr.Markdown("Press **Run NI baseline replica**. The same frozen scenario pack can then be handed to an external optimiser.")
+            with gr.Row():
+                base_dd_plot=gr.Plot(label="Dispatch-down calibration")
+                base_group_map=gr.Plot(label="Current constraint groups")
+            base_line_map=gr.Plot(label="Network stress map")
+            gr.Markdown("### Baseline headline metrics")
+            base_metrics_table=gr.Dataframe(interactive=False)
+            gr.Markdown("### Calibration audit trail")
+            base_calibration_table=gr.Dataframe(interactive=False)
+            gr.Markdown("### Current SONI group activation / dispatch-down behaviour")
+            base_group_table=gr.Dataframe(interactive=False)
+            gr.Markdown("### Most stressed represented transmission lines")
+            base_line_table=gr.Dataframe(interactive=False)
+            gr.Markdown("### 200 highest-dispatch-down / highest-N-1-stress cases")
+            base_worst_table=gr.Dataframe(interactive=False)
+            base_handoff_file=gr.File(label="Frozen baseline handoff pack for external optimisation")
 
         with gr.Tab("Dynamic demand shock"):
             gr.Markdown(
@@ -1088,6 +1336,16 @@ with gr.Blocks(title="Northern Ireland Grid Constraint Simulator") as demo:
         show_progress="full",
     )
     stress_stop.click(fn=None, cancels=[stress_event])
+    base_event=base_run_btn.click(
+        run_current_grid_baseline,
+        inputs=[base_runs,base_seed,base_demand_scale,base_thermal_scale,base_outage_exposure,base_target_dd,base_calibrate],
+        outputs=[
+            base_summary,base_dd_plot,base_group_map,base_line_map,base_metrics_table,base_calibration_table,
+            base_group_table,base_line_table,base_worst_table,base_handoff_file,
+        ],
+        show_progress="full",
+    )
+    base_stop_btn.click(fn=None,cancels=[base_event])
     preset.change(
         apply_dynamic_preset,
         inputs=[preset],
