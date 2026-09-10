@@ -1,0 +1,85 @@
+point_name,point_type,connection_level,max_export_capacity_mw,latitude,longitude,mapped_bus,mapped_bus_kv,mapping_distance_km,mapping_quality,market_bucket,semo_dispatch_join_candidate
+Ballylumford Power Station GT1,Power station unit,Transmission - 110 kV,58.0,54.842634,-5.784915,70510,110.0,0.1751605657028258,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Ballylumford Power Station GT2,Power station unit,Transmission - 110 kV,58.0,54.842634,-5.784915,70510,110.0,0.1751605657028258,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Ballylumford Power Station BT10,Power station unit,Transmission - 110 kV,98.4,54.842634,-5.784915,70510,110.0,0.1751605657028258,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Ballylumford Power Station BGT20,Power station unit,Transmission - 275 kV,479.0,54.842634,-5.784915,70520,275.0,0.2902684192871413,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Kilroot Power Station K1,Power station unit,Transmission - 275 kV,255.26,54.724932,-5.767917,82020,275.0,0.24496436456334097,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Kilroot Power Station K2,Power station unit,Transmission - 275 kV,257.92,54.724932,-5.767917,82020,275.0,0.24496436456334097,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Kilroot Power Station KGT1,Power station unit,Transmission - 275 kV,29.0,54.724932,-5.767917,82020,275.0,0.24496436456334097,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Kilroot Power Station KGT2,Power station unit,Transmission - 275 kV,29.0,54.724932,-5.767917,82020,275.0,0.24496436456334097,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Coolkeeragh Power Station GT8,Power station unit,Transmission - 110 kV,53.0,55.043724,-7.249949,75510,110.0,0.22630008866226903,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Owenreagh Wind Farm,Wind farm,Distribution - 33 kV,5.5,54.812527,-7.342073,89510,110.0,7.20821134964687,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Lendrum's Bridge Wind Farm,Wind farm,Distribution - 33 kV,13.2,54.438477,-7.342706,76810,110.0,10.497614034774537,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Altahullion Wind Farm,Wind farm,Distribution - 33 kV,26.0,54.962331,-7.033634,83510,110.0,10.189934926611155,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Snugborough Wind Farm,Wind farm,Distribution - 33 kV,13.5,54.142851,-7.609639,70010,110.0,2.725105266538603,high,wind,Yes for applicable dispatchable units; unit-name mapping required
+Tappaghan Wind Farm,Wind farm,Distribution - 33 kV,28.5,54.5612,-7.551037,77210,110.0,4.460284012616374,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Coolkeeragh Power Station GS,Power station unit,Transmission - 110 kV,147.0,55.043724,-7.249949,75510,110.0,0.22630008866226903,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Coolkeeragh Power Station GT,Power station unit,Transmission - 275 kV,266.0,55.043724,-7.249949,75520,275.0,0.22630008866226903,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Callagheen Wind Farm,Wind farm,Distribution - 33 kV,16.9,54.442754,-8.01448,79010,110.0,26.106119679643868,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Bin Mountain Wind Farm,Wind farm,Distribution - 33 kV,9.0,54.616469,-7.632094,77210,110.0,10.45038543267448,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Lough Hill Wind Farm,Wind farm,Distribution - 33 kV,7.8,54.627825,-7.609402,77210,110.0,9.84984016353282,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Altahullion 2 Wind Farm,Wind farm,Distribution - 33 kV,11.7,54.958781,-7.034578,83510,110.0,10.504216745189309,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Slieve Rushen 2 Wind Farm,Wind farm,Distribution - 33 kV,54.0,54.162505,-7.617123,70010,110.0,2.083315892308155,high,wind,Yes for applicable dispatchable units; unit-name mapping required
+Wolf Bog Wind Farm,Wind farm,Distribution - 33 kV,10.0,54.802964,-6.086314,80511,110.0,5.066987214352651,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Bessy Bell 2 Wind Farm,Wind farm,Distribution - 33 kV,9.0,54.680476,-7.386488,85510,110.0,13.270447890414848,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Owenreagh 2 Wind Farm,Wind farm,Distribution - 33 kV,5.1,54.809594,-7.336241,89510,110.0,7.703572062921716,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Slieve Divena 1 Wind Farm,Wind farm,Distribution - 33 kV,30.0,54.508857,-7.09816,80710,110.0,2.9039231790549125,high,wind,Yes for applicable dispatchable units; unit-name mapping required
+Garves Wind Farm,Wind farm,Distribution - 33 kV,15.0,55.000707,-6.449401,87900,110.0,7.639637811132731,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Gruig Wind Farm,Wind farm,Distribution - 33 kV,25.0,55.025267,-6.255606,87900,110.0,19.418496904881287,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Kilroot Power Station KGT3,Power station unit,Transmission - 275 kV,42.0,54.724932,-5.767917,82020,275.0,0.24496436456334097,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Kilroot Power Station KGT4,Power station unit,Transmission - 275 kV,42.0,54.724932,-5.767917,82020,275.0,0.24496436456334097,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Hunters Hill Wind Farm,Wind farm,Distribution - 33 kV,20.0,54.438618,-7.332378,76810,110.0,10.68785137213144,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Crockagarran Wind Farm,Wind farm,Distribution - 33 kV,18.0,54.554098,-7.020671,90210,110.0,2.732145361932163,high,wind,Yes for applicable dispatchable units; unit-name mapping required
+Curryfree Wind Farm,Wind farm,Distribution - 33 kV,15.0,54.930121,-7.310936,81810,110.0,2.6301387827044795,high,wind,Yes for applicable dispatchable units; unit-name mapping required
+Screggagh Wind Farm,Wind farm,Distribution - 33 kV,20.0,54.453415,-7.339121,76810,110.0,8.992727679244872,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Slieve Kirk Wind Farm,Wind farm,Transmission - 110 kV,73.6,54.917775,-7.266002,81810,110.0,5.711026680607745,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Church Hill Wind Farm,Wind farm,Distribution - 33 kV,18.4,54.654753,-7.718309,77210,110.0,17.357855214912846,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Crighshane Wind Farm,Wind farm,Distribution - 33 kV,32.2,54.642407,-7.79754,77210,110.0,21.389763050926017,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Carrickatane Wind Farm,Wind farm,Distribution - 33 kV,20.7,54.913525,-7.331023,81810,110.0,3.805755730866178,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Carn Hill Wind Farm,Wind farm,Distribution - 33 kV,13.8,54.722684,-5.918238,74011,110.0,4.587859438475209,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Dunmore Wind Farm,Wind farm,Distribution - 33 kV,21.0,55.097433,-6.820452,75010,110.0,8.568688794601568,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Dunbeg Wind Farm,Wind farm,Distribution - 33 kV,42.0,55.086762,-6.818699,75010,110.0,8.725546842995671,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Thornog Wind Farm,Wind farm,Distribution - 33 kV,20.0,54.589279,-7.621001,77210,110.0,8.820744421834709,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Molly Mountain Wind Farm,Wind farm,Distribution - 33 kV,15.0,54.197944,-7.636499,70010,110.0,5.150098903037242,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Lisahally Power Station (Biomass),Biomass generation,Distribution - 33 kV,17.6,55.041605,-7.254462,75510,110.0,0.468651365029496,high,biomass,Yes for applicable dispatchable units; unit-name mapping required
+Monnaboy Wind Farm,Wind farm,Distribution - 33 kV,12.0,54.984899,-7.109227,75510,110.0,10.877499629943813,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Seegronan Wind Farm,Wind farm,Distribution - 33 kV,14.1,54.651116,-7.696645,77210,110.0,15.95590488152317,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Cloonty Wind Farm,Wind farm,Distribution - 33 kV,9.2,55.161057,-6.482488,84511,110.0,11.131351929508128,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Tievenameenta Wind Farm,Wind farm,Distribution - 33 kV,34.5,54.644002,-7.747534,77210,110.0,18.478360231390965,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Ora More Wind Farm,Wind farm,Distribution - 33 kV,15.0,54.331522,-7.886121,79010,110.0,16.900512076133023,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Cregganconroe Wind Farm,Wind farm,Distribution - 33 kV,13.8,54.612192,-6.970614,90210,110.0,7.510965221920543,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Eglish Wind Farm,Wind farm,Distribution - 33 kV,15.0,54.891013,-7.214017,81810,110.0,10.155917337446155,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Eshmore Wind Farm,Wind farm,Distribution - 33 kV,7.05,54.539272,-6.983297,90210,110.0,0.6416227424433976,high,wind,Yes for applicable dispatchable units; unit-name mapping required
+Glenbuck Wind Farm,Wind farm,Distribution - 33 kV,9.2,54.982495,-6.427593,87900,110.0,7.482913301063282,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Gortfinbar Wind Farm,Wind farm,Distribution - 33 kV,15.0,54.544627,-7.027095,90210,110.0,2.949779388382873,high,wind,Yes for applicable dispatchable units; unit-name mapping required
+Long Mountain Wind Farm,Wind farm,Distribution - 33 kV,27.6,54.982585,-6.417873,87900,110.0,8.03667766112507,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Altamuskin Wind Farm,Wind farm,Distribution - 33 kV,14.1,54.518506,-7.106656,80710,110.0,3.7674945074683133,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Crockandun Wind Farm,Wind farm,Distribution - 33 kV,15.0,54.7413,-6.78232,75810,110.0,18.71446447340339,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Crockbaravally Wind Farm,Wind farm,Distribution - 33 kV,7.5,54.516883,-7.03685,90210,110.0,4.748084234212725,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Lisburn Solar Park (Ballinderry Road),Solar farm,Distribution - 33 kV,16.92,54.142022,-7.466166,70010,110.0,8.080976490584012,medium,solar,Yes for applicable dispatchable units; unit-name mapping required
+Slieve Divena 2 Wind Farm,Wind farm,Distribution - 33 kV,18.8,54.513816,-7.105354,80710,110.0,3.274218355090564,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Bann Road PV Farm,Solar farm,Distribution - 33 kV,29.81,54.964249,-6.495024,87900,110.0,2.7499736424373404,high,solar,Yes for applicable dispatchable units; unit-name mapping required
+Inishative Wind Farm,Wind farm,Distribution - 33 kV,13.8,54.565526,-6.980634,90210,110.0,2.2903926507414942,high,wind,Yes for applicable dispatchable units; unit-name mapping required
+Lough Road PV Farm,Solar farm,Distribution - 33 kV,21.0,54.558824,-6.242561,84011,110.0,10.671405097703259,low,solar,Yes for applicable dispatchable units; unit-name mapping required
+Millar Farm PV,Solar farm,Distribution - 33 kV,6.27,54.74301,-6.248491,70311,110.0,2.4576783063795107,high,solar,Yes for applicable dispatchable units; unit-name mapping required
+Shantavany Scotch Wind Farm,Wind farm,Distribution - 33 kV,16.1,54.491249,-7.093362,80710,110.0,1.6757580923075408,high,wind,Yes for applicable dispatchable units; unit-name mapping required
+Altaveedan Wind Farm,Wind farm,Distribution - 33 kV,18.0,55.077014,-6.263203,87900,110.0,22.119535812846834,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Crockdun Wind Farm,Wind farm,Distribution - 33 kV,12.5,54.635372,-7.068539,90210,110.0,11.518544459111562,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Brockaghboy Windfarm,Wind farm,Transmission - 110 kV,47.5,54.937243,-6.737928,73500,110.0,0.022025929179486647,high,wind,Yes for applicable dispatchable units; unit-name mapping required
+Rathsherry Wind Farm,Wind farm,Distribution - 33 kV,21.15,54.939792,-6.19884,71011,110.0,11.297028135764931,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Finvoy Road Solar Farm,Solar farm,Distribution - 33 kV,5.209,54.961968,-6.489973,87900,110.0,2.8957208272572474,high,solar,Yes for applicable dispatchable units; unit-name mapping required
+Maghaberry Solar Farm,Solar farm,Distribution - 33 kV,20.43,54.512274,-6.173421,84011,110.0,5.448790632458476,medium,solar,Yes for applicable dispatchable units; unit-name mapping required
+Elginny Hill Wind Farm,Wind farm,Distribution - 33 kV,23.0,54.934388,-6.215012,71011,110.0,10.284789723832148,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Laurel Hill Road Solar Park,Solar farm,Distribution - 33 kV,8.5,54.40097,-6.25725,71511,110.0,6.3809968145105005,medium,solar,Yes for applicable dispatchable units; unit-name mapping required
+Ballygarvey Road Solar Park,Solar farm,Distribution - 33 kV,6.0,54.88442,-6.252785,71011,110.0,4.240201404400734,medium,solar,Yes for applicable dispatchable units; unit-name mapping required
+Bombardier Energy from Waste Plant,Energy from waste,Distribution - 33 kV,9.98,54.619311,-5.880371,82511,110.0,3.2023615980768336,medium,waste,Yes for applicable dispatchable units; unit-name mapping required
+Pollnalaght (Cornavarrow) Wind Farm,Wind farm,Distribution - 33 kV,36.0,54.657951,-7.465262,77210,110.0,9.289209723991195,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Slieveglass Wind Farm,Wind farm,Distribution - 33 kV,6.9,54.648031,-7.573285,77210,110.0,9.83898903719272,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Castlecraig Wind Farm,Wind farm,Distribution - 33 kV,25.0,54.625717,-7.588645,77210,110.0,8.65549656141576,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Teiges Mountain Wind Farm,Wind farm,Distribution - 33 kV,11.0,54.303914,-7.338447,79010,110.0,20.32545327658277,low,wind,Yes for applicable dispatchable units; unit-name mapping required
+Evishagaran Wind Farm,Wind farm,Distribution - 33 kV,46.8,54.939608,-6.832506,73500,110.0,6.029734208237167,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Craiggore Wind Farm,Wind farm,Distribution - 33 kV,23.5,54.994741,-6.804186,73500,110.0,7.666669446589644,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Ballykeel Wind Farm,Wind farm,Distribution - 33 kV,16.1,54.854149,-5.912451,83011,110.0,3.723921435640741,medium,wind,Yes for applicable dispatchable units; unit-name mapping required
+Kilroot Power Station GT6,Power station unit,Transmission - 275 kV,350.0,54.726932,-5.768195,82020,275.0,0.028236997238842567,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Kilroot Power Station GT7,Power station unit,Transmission - 275 kV,350.0,54.726932,-5.768195,82020,275.0,0.028236997238842567,high,thermal,Yes for applicable dispatchable units; unit-name mapping required
+Moyle Interconnector - Ballycronan More Converter Station,HVDC interconnector,HVDC / 275 kV NI grid connection,500.0,54.84278,-5.76972,86220,275.0,0.0669909925039222,high,interconnector,Not a generator unit; use interconnector flow/trade data instead
