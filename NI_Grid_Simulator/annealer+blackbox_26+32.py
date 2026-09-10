@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import sys
 from numba import njit
 
 from all_island_annealer_api import make_emulator
@@ -12,6 +13,7 @@ from all_island_annealer_api import make_emulator
 
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "outputs"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ============================================================
@@ -171,31 +173,34 @@ def estimate_temperature_range_blackbox(
             candidate
         )
 
-        dE = abs(E_new - E)
+        # security_guard can deliberately return +inf for a grouping that
+        # creates a new security failure. Such a point is a rejected/forbidden
+        # state, not an energy scale from which to estimate temperature.
+        if np.isfinite(E_new):
+            dE = abs(E_new - E)
+            if dE > 0 and np.isfinite(dE):
+                dEs.append(dE)
 
-        if dE > 0:
-            dEs.append(dE)
-
-        # Random walk for probing only
-        grouping = candidate
-        E = E_new
+            # Random walk only through valid finite states.
+            grouping = candidate
+            E = E_new
 
         if verbose:
-
+            shown = f"{E_new:.4f}%" if np.isfinite(E_new) else "REJECTED (security)"
             print(
                 f"  Temperature probe "
                 f"{sample + 1}/{n_samples} | "
-                f"E = {E:.4f}%"
+                f"E = {shown}"
             )
 
     dEs = np.array(dEs)
 
     if len(dEs) == 0:
-
-        raise RuntimeError(
-            "No non-zero energy changes were found "
-            "during temperature estimation."
-        )
+        # Flat local objective: use a very small finite schedule rather than
+        # crashing. The annealer can still explore valid zero-delta swaps.
+        if verbose:
+            print("  No finite non-zero probe deltas found; using fallback temperatures.")
+        return 1e-3, 1e-6
 
     dE_typical = np.percentile(
         dEs,
@@ -534,38 +539,27 @@ def sim_annealing_grouping(
 
 
 # ============================================================
-# 6. START NORTHERN IRELAND GRID EMULATOR
+# 6. START 26- OR 32-COUNTY GRID EMULATOR
 # ============================================================
 
+# Usage:
+#   python3 annealer+blackbox_26+32.py 32
+#   python3 annealer+blackbox_26+32.py 26
+# Defaults to the 32-county all-island case.
+SCOPE = sys.argv[1].strip() if len(sys.argv) > 1 else "32"
+if SCOPE not in {"26", "32"}:
+    raise SystemExit("Usage: python3 annealer+blackbox_26+32.py [26|32]")
+
 print("=" * 60)
-print("STARTING NI GRID EMULATOR")
+print(f"STARTING {SCOPE}-COUNTY SV2024 GRID EMULATOR")
 print("=" * 60)
 
-dispatch_down, _ = make_emulator(
+# IMPORTANT: use the node table returned by make_emulator().  It is loaded from
+# the matching SV2024 WDT CSV and is guaranteed to match the black-box template.
+dispatch_down, nodes = make_emulator(
+    scope=SCOPE,
     runs=10_000,
     seed=42,
-)
-
-
-# ============================================================
-# 7. LOAD CURRENT NODE CONFIGURATION
-# ============================================================
-
-nodes = pd.read_csv(
-    OUTPUT_DIR / "annealer_nodes_current.csv"
-)
-
-
-# ============================================================
-# 8. CONVERT CSV GROUP STRINGS TO TUPLES
-# ============================================================
-
-nodes["groups"] = nodes["groups"].apply(
-    lambda x: tuple(
-        int(g.strip())
-        for g in str(x).strip("()").split(",")
-        if g.strip()
-    )
 )
 
 
@@ -587,7 +581,7 @@ print(
 
 
 # ============================================================
-# 9. CALCULATE SONI BASELINE
+# 9. CALCULATE CURRENT WDT BASELINE
 # ============================================================
 
 baseline_dispatch_down = dispatch_down(
@@ -596,7 +590,7 @@ baseline_dispatch_down = dispatch_down(
 
 print()
 print("=" * 60)
-print("SONI BASELINE")
+print("CURRENT WDT BASELINE")
 print("=" * 60)
 
 print(
@@ -642,7 +636,7 @@ print("FINAL COMPARISON")
 print("=" * 60)
 
 print(
-    f"SONI baseline:       "
+    f"Current WDT baseline:       "
     f"{baseline_dispatch_down:.4f}%"
 )
 
@@ -700,12 +694,12 @@ print(
 # ============================================================
 
 best_nodes.to_csv(
-    OUTPUT_DIR / "optimised_constraint_groups.csv",
+    OUTPUT_DIR / f"optimised_constraint_groups_{SCOPE}_counties.csv",
     index=False
 )
 
 pd.DataFrame(history).to_csv(
-    OUTPUT_DIR / "annealing_history.csv",
+    OUTPUT_DIR / f"annealing_history_{SCOPE}_counties.csv",
     index=False
 )
 
@@ -715,7 +709,7 @@ print(
 )
 
 print(
-    OUTPUT_DIR / "optimised_constraint_groups.csv"
+    OUTPUT_DIR / f"optimised_constraint_groups_{SCOPE}_counties.csv"
 )
 
 print(
@@ -723,5 +717,5 @@ print(
 )
 
 print(
-    OUTPUT_DIR / "annealing_history.csv"
+    OUTPUT_DIR / f"annealing_history_{SCOPE}_counties.csv"
 )

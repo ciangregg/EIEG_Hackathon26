@@ -1,4 +1,4 @@
-"""Annealer-facing API for the 26-county and 32-county WP2033 grid models.
+"""Annealer-facing API for the 26-county and 32-county SV2024 grid models.
 
 The public contract intentionally matches ``ni_annealer_api``::
 
@@ -9,7 +9,7 @@ The public contract intentionally matches ``ni_annealer_api``::
 
 The annealer edits only ``nodes['groups']`` (or the equivalent scalar ``group``
 column) and repeatedly calls ``dispatch_down(candidate_nodes)``.  The network,
-168 WP2033 demand/renewable snapshots, sampled case weights, security-state
+168 SV2024 demand snapshots and frozen synthetic renewable-availability scenarios, sampled case weights, security-state
 screen and all other model data are frozen by ``make_emulator``.
 
 Scope
@@ -47,8 +47,8 @@ from ni_grid_core import DCGridModel, NetworkData, read_network_nc
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_NETWORK_FILE = ROOT / "data" / "SV2024_all-island.nc"
-DEFAULT_NODES_26 = ROOT / "outputs" / "annealer_nodes_26_counties_exclusive.csv"
-DEFAULT_NODES_32 = ROOT / "outputs" / "annealer_nodes_32_counties_exclusive.csv"
+DEFAULT_NODES_26 = ROOT / "outputs" / "annealer_nodes_26_counties_sv2024_wdt_exclusive.csv"
+DEFAULT_NODES_32 = ROOT / "outputs" / "annealer_nodes_32_counties_sv2024_wdt_exclusive.csv"
 EPS = 1e-9
 
 
@@ -128,6 +128,11 @@ def _normalise_single_group(value: Any) -> int:
 
 
 def _read_extra(path: Path) -> _ExtraData:
+    """Read SV2024 metadata needed in addition to ``read_network_nc``.
+
+    SV2024 does not contain wind/solar ``p_max_pu`` arrays. Those fields are
+    optional here rather than assumed to exist as they were in the WP2033 code.
+    """
     with h5py.File(path, "r") as f:
         bus_ids = _decode(f["buses_i"][:])
         bus_meta = pd.DataFrame({
@@ -149,8 +154,12 @@ def _read_extra(path: Path) -> _ExtraData:
             "p_min_pu": np.asarray(f["generators_p_min_pu"][:], float),
         })
 
-        renewable_profile_ids = tuple(_decode(f["generators_t_p_max_pu_i"][:]))
-        renewable_profiles = np.asarray(f["generators_t_p_max_pu"][:], float)
+        if "generators_t_p_max_pu_i" in f and "generators_t_p_max_pu" in f:
+            renewable_profile_ids = tuple(_decode(f["generators_t_p_max_pu_i"][:]))
+            renewable_profiles = np.asarray(f["generators_t_p_max_pu"][:], float)
+        else:
+            renewable_profile_ids = tuple()
+            renewable_profiles = np.empty((0, 0), dtype=float)
 
         links = pd.DataFrame({
             "name": _decode(f["links_i"][:]),
@@ -225,42 +234,107 @@ def _subset_network(full: NetworkData, extra: _ExtraData, scope: str) -> tuple[N
     return final, connected
 
 
-def _build_node_table(network: NetworkData, extra: _ExtraData) -> pd.DataFrame:
-    selected = set(network.buses["bus"].astype(str))
-    gm = extra.generators[
-        extra.generators["bus"].astype(str).isin(selected) &
-        extra.generators["carrier"].str.lower().isin(["wind", "solar"])
-    ].copy()
-    meta = extra.bus_meta.set_index("bus")
-    rows = []
-    for bus, g in gm.groupby("bus", sort=False):
-        wind = float(g.loc[g["carrier"].str.lower().eq("wind"), "p_nom_mw"].sum())
-        solar = float(g.loc[g["carrier"].str.lower().eq("solar"), "p_nom_mw"].sum())
-        m = meta.loc[str(bus)]
-        area = int(m["area"]) if np.isfinite(float(m["area"])) else 1
-        station = str(m.get("station", "")).strip() or f"Bus {bus}"
-        tech = "wind+solar" if wind > 0 and solar > 0 else "wind" if wind > 0 else "solar"
-        brow = network.buses.loc[network.buses["bus"].astype(str).eq(str(bus))].iloc[0]
-        rows.append({
-            "name": station,
-            "bus": str(bus),
-            "groups": (area,),
-            "group": area,
-            "mec_mw": wind + solar,
-            "technology": tech,
-            "latitude": float(brow.get("lat", np.nan)),
-            "longitude": float(brow.get("lon", np.nan)),
-            "jurisdiction": str(m["jurisdiction"]),
-            "psse_area": area,
-            "v_nom_kv": float(brow.get("v_nom_kv", np.nan)),
-            "wind_mw": wind,
-            "solar_mw": solar,
-            "generator_count": int(len(g)),
-        })
-    out = pd.DataFrame(rows)
-    out = out.sort_values(["jurisdiction", "psse_area", "name", "bus"], kind="stable").reset_index(drop=True)
-    out.insert(0, "node_id", np.arange(len(out), dtype=int))
-    return out
+def _resolve_asset_file(scope: str, asset_file: str | Path | None) -> Path:
+    """Resolve the renewable-node CSV with common project-layout fallbacks."""
+    if asset_file is not None:
+        p = Path(asset_file).expanduser()
+        if not p.is_absolute():
+            p = ROOT / p
+        if not p.exists():
+            raise FileNotFoundError(f"Renewable asset/node CSV not found: {p}")
+        return p
+
+    filename = (
+        "annealer_nodes_26_counties_sv2024_wdt_exclusive.csv"
+        if scope == "26"
+        else "annealer_nodes_32_counties_sv2024_wdt_exclusive.csv"
+    )
+    candidates = [ROOT / "outputs" / filename, ROOT / "data" / filename, ROOT / filename]
+    for p in candidates:
+        if p.exists():
+            return p
+    attempted = "\n  - ".join(str(p) for p in candidates)
+    raise FileNotFoundError(
+        "Could not find the SV2024 renewable node CSV. Tried:\n  - " + attempted +
+        "\nPass asset_file=... explicitly or place the CSV in outputs/, data/, or beside this module."
+    )
+
+
+def _build_node_table(network: NetworkData, asset_file: Path, scope: str) -> pd.DataFrame:
+    """Load annealer nodes, renewable capacities and starting groups from CSV."""
+    nodes = pd.read_csv(asset_file)
+    required = {"node_id", "name", "bus", "groups", "mec_mw", "technology"}
+    missing = required - set(nodes.columns)
+    if missing:
+        raise ValueError(f"Asset CSV {asset_file} is missing required columns: {sorted(missing)}")
+
+    nodes = nodes.copy()
+    nodes["bus"] = nodes["bus"].astype(str).str.strip()
+    nodes["mec_mw"] = pd.to_numeric(nodes["mec_mw"], errors="raise").astype(float)
+    if (nodes["mec_mw"] <= 0).any():
+        bad = nodes.loc[nodes["mec_mw"] <= 0, ["name", "mec_mw"]].head(10)
+        raise ValueError(f"Every renewable node needs positive mec_mw; examples:\n{bad.to_string(index=False)}")
+
+    if "jurisdiction" in nodes.columns:
+        wanted = {"IE"} if scope == "26" else {"IE", "NI"}
+        nodes = nodes[nodes["jurisdiction"].astype(str).isin(wanted)].copy()
+
+    selected_buses = set(network.buses["bus"].astype(str))
+    missing_bus_mask = ~nodes["bus"].isin(selected_buses)
+    if missing_bus_mask.any():
+        bad = nodes.loc[missing_bus_mask, ["name", "bus"]]
+        raise ValueError(
+            f"{len(bad)} renewable nodes in {asset_file.name} map to buses outside the selected {scope}-county "
+            f"AC network. First examples:\n{bad.head(12).to_string(index=False)}"
+        )
+
+    nodes = nodes.reset_index(drop=True)
+    nodes["node_id"] = np.arange(len(nodes), dtype=int)
+    group_ids = [_normalise_single_group(v) for v in nodes["groups"]]
+    nodes["group"] = group_ids
+    # Return tuple-valued groups so the existing annealer can consume nodes
+    # directly without re-parsing CSV strings.
+    nodes["groups"] = [(int(g),) for g in group_ids]
+    return nodes
+
+
+def _synthetic_renewable_potential(nodes: pd.DataFrame, n_snap: int, seed: int) -> np.ndarray:
+    """Build deterministic frozen wind/solar availability for SV2024.
+
+    SV2024 supplies demand snapshots but no renewable availability series. This
+    uses the same broad stochastic structure as the NI emulator: shared wind
+    weather, daylight-limited solar and modest local plant variability. Because
+    this matrix is frozen before annealing, every candidate sees identical cases.
+    """
+    rng = np.random.default_rng(int(seed))
+    n_node = len(nodes)
+    mec = nodes["mec_mw"].to_numpy(float)
+    tech = nodes["technology"].astype(str).str.lower().to_numpy()
+    hour = np.arange(n_snap, dtype=float) % 24.0
+
+    raw_wind = rng.beta(2.2, 3.8, size=n_snap + 8)
+    wind_common = np.convolve(raw_wind, np.ones(5) / 5.0, mode="valid")[:n_snap]
+    if wind_common.mean() > EPS:
+        wind_common *= 0.37 / wind_common.mean()
+    wind_common = np.clip(wind_common, 0.02, 0.95)
+
+    raw_cloud = rng.beta(4.0, 2.0, size=n_snap + 4)
+    cloud = np.convolve(raw_cloud, np.ones(3) / 3.0, mode="valid")[:n_snap]
+    daylight = np.maximum(0.0, np.sin(np.pi * (hour - 6.0) / 12.0))
+    solar_common = np.clip(daylight * (0.45 + 0.55 * cloud), 0.0, 1.0)
+
+    local_sigma = 0.12
+    local = rng.lognormal(
+        mean=-0.5 * local_sigma**2,
+        sigma=local_sigma,
+        size=(n_snap, n_node),
+    )
+    common = np.empty((n_snap, n_node), dtype=float)
+    for j, t in enumerate(tech):
+        common[:, j] = solar_common if ("solar" in t or "pv" in t) else wind_common
+
+    availability = np.clip(common * local, 0.0, 1.0)
+    return availability * mec[None, :]
 
 
 def _node_groups(nodes: pd.DataFrame, template: pd.DataFrame) -> np.ndarray:
@@ -376,20 +450,11 @@ def _build_frozen_cases(
     node_bus = nodes["bus"].astype(str).tolist()
     node_bus_idx = np.array([model.bus_index[b] for b in node_bus], dtype=int)
 
-    # Renewable potential from the file's 168 p_max_pu snapshots.
-    profile_index = {g: i for i, g in enumerate(extra.renewable_profile_ids)}
-    node_index = {b: i for i, b in enumerate(node_bus)}
-    potential = np.zeros((n_snap, n_node), dtype=float)
+    # Renewable potential comes from the external SV2024 renewable node table.
+    # The .nc contains no wind/solar p_max_pu arrays, so use one deterministic,
+    # frozen availability matrix for every annealer candidate.
+    potential = _synthetic_renewable_potential(nodes, n_snap, seed)
     selected_buses = set(model.bus_ids)
-    gm = extra.generators[
-        extra.generators["bus"].astype(str).isin(selected_buses) &
-        extra.generators["carrier"].str.lower().isin(["wind", "solar"])
-    ]
-    for r in gm.itertuples(index=False):
-        if str(r.generator) not in profile_index or str(r.bus) not in node_index:
-            continue
-        pmax = np.clip(extra.renewable_profiles[:, profile_index[str(r.generator)]], 0.0, None)
-        potential[:, node_index[str(r.bus)]] += float(r.p_nom_mw) * pmax
 
     # Demand by bus from the supplied load snapshots.
     demand = np.zeros((n_snap, n_bus), dtype=float)
@@ -410,7 +475,7 @@ def _build_frozen_cases(
         if b1 in model.bus_index:
             fixed[:, model.bus_index[b1]] += p * float(lk.efficiency)
 
-    # Dispatchable synchronous/conventional fleet from the same WP2033 file.
+    # Dispatchable synchronous/conventional fleet from the SV2024 file.
     conv = extra.generators[
         extra.generators["bus"].astype(str).isin(selected_buses) &
         ~extra.generators["carrier"].str.lower().isin(["wind", "solar", "load shedding", "import", "export"]) &
@@ -418,7 +483,7 @@ def _build_frozen_cases(
     ].copy()
     conv = conv.sort_values(["marginal_cost", "p_nom_mw"], ascending=[True, False], kind="stable").reset_index(drop=True)
     if conv.empty:
-        raise ValueError("No dispatchable generation found in selected WP2033 scope")
+        raise ValueError("No dispatchable generation found in selected SV2024 scope")
     pmax = conv["p_nom_mw"].to_numpy(float)
     pmin = np.clip(conv["p_min_pu"].to_numpy(float), 0.0, 1.0) * pmax
     balance_row = int(np.argmax(pmax))
@@ -539,9 +604,8 @@ def make_emulator(
     max_security_states: int = 800,
     max_group_actions: int = 24,
     security_guard: bool = True,
-    # Compatibility with calls written for ni_annealer_api.  These NI-specific
-    # parameters are intentionally ignored for WP2033 rather than silently
-    # applying a 2024 NI calibration to a 2033 all-island model.
+    # Compatibility with calls written for ni_annealer_api. These optional NI-only
+    # calibration controls are accepted but not applied to the all-island SV2024 model.
     target_dispatch_down_pct: float | None = None,
     demand_scale: float | None = None,
     planned_outage_exposure_pct: float | None = None,
@@ -554,20 +618,25 @@ def make_emulator(
     limited to 1..5.
 
     ``dispatch_down(candidate_nodes)`` returns physical renewable dispatch-down
-    as a percentage of renewable potential across the frozen weighted WP2033
-    cases.  With ``security_guard=True`` (default), a candidate that makes any
+    as a percentage of renewable potential across the frozen weighted SV2024 cases.  With ``security_guard=True`` (default), a candidate that makes any
     snapshot insecure that was secure under the starting assignment returns
     ``np.inf``.  Existing baseline model-security failures are not hidden; they
     remain available through diagnostics on the callable.
     """
-    del target_dispatch_down_pct, demand_scale, planned_outage_exposure_pct, asset_file
+    del target_dispatch_down_pct, demand_scale, planned_outage_exposure_pct
     scope = _scope_value(scope)
-    path = Path(network_file)
+    path = Path(network_file).expanduser()
+    if not path.is_absolute():
+        path = ROOT / path
+    if not path.exists():
+        raise FileNotFoundError(f"SV2024 network file not found: {path}")
+
+    node_path = _resolve_asset_file(scope, asset_file)
     extra = _read_extra(path)
     full = read_network_nc(path)
     network, _selected = _subset_network(full, extra, scope)
     model = DCGridModel(network)
-    template = _build_node_table(network, extra)
+    template = _build_node_table(network, node_path, scope)
     cases = _build_frozen_cases(
         network, model, extra, template,
         runs=int(runs), seed=int(seed), thermal_scale=float(thermal_scale),
@@ -670,6 +739,8 @@ def make_emulator(
     dispatch_down.runs = int(runs)
     dispatch_down.seed = int(seed)
     dispatch_down.network_file = str(path)
+    dispatch_down.asset_file = str(node_path)
+    dispatch_down.renewable_availability_source = "synthetic_frozen_sv2024"
     dispatch_down.baseline_dispatch_down_pct = float(baseline_pct)
     dispatch_down.baseline_security_pass_pct = float(100.0 * np.sum(weights * baseline_secure.astype(float)))
     dispatch_down.baseline_worst_screened_loading_pct = float(100.0 * np.max(baseline_worst[weights > 0]))
@@ -691,5 +762,5 @@ if __name__ == "__main__":
         print(
             f"{_scope}-county: nodes={len(nodes)}, groups={nodes['group'].nunique()}, "
             f"DD={score:.3f}%, security={dispatch_down.last_security_pass_pct:.2f}%, "
-            f"states={dispatch_down.security_state_count}"
+            f"states={dispatch_down.security_state_count}, availability={dispatch_down.renewable_availability_source}"
         )
