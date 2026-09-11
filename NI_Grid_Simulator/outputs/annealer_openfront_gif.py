@@ -181,7 +181,7 @@ def run_annealer_with_snapshots(
     )
 
     for eval_index in range(1, max_evals + 1):
-        
+
         if eval_index % 100 == 0 or eval_index == max_evals:
             print(f"Annealing: {eval_index}/{max_evals} ({100*eval_index/max_evals:.0f}%) | Best DD: {best_dd:.4f}%")
         frac = 0.0 if max_evals == 1 else (eval_index - 1) / (max_evals - 1)
@@ -267,13 +267,29 @@ def load_boundary(basemap: Optional[Path], nodes_df: pd.DataFrame):
     if basemap is not None and basemap.exists():
         if gpd is None:
             raise RuntimeError("geopandas is required to read the basemap file")
+
         gdf = gpd.read_file(basemap)
+
+        # Keep only polygonal geometries
+        gdf = gdf[gdf.geometry.notna()].copy()
+        gdf = gdf[gdf.geometry.geom_type.isin(["Polygon", "MultiPolygon"])].copy()
+
+        if len(gdf) == 0:
+            raise RuntimeError("No polygon geometry found in basemap")
+
         geom = unary_union(gdf.geometry)
+
+        # If multiple polygons exist, keep the largest one
+        # so the island outline is used rather than stray shapes / sea extents.
+        if geom.geom_type == "MultiPolygon":
+            geom = max(geom.geoms, key=lambda g: g.area)
+
         return geom
 
-    # Fallback: padded convex hull from nodes.
+    # Fallback: padded convex hull from nodes
     if Polygon is None:
         raise RuntimeError("shapely/geopandas not available for fallback boundary creation")
+
     pts = [
         (float(lon), float(lat))
         for lon, lat in zip(nodes_df["longitude"], nodes_df["latitude"])
@@ -453,14 +469,17 @@ def render_frame(
     rel = (improvement_pp / baseline_dd * 100.0) if baseline_dd else 0.0
 
     if intro_reveal is None:
+        total_groups = len(set(int(g) for g in snapshot.grouping))
+
         info = (
-            f"Iteration: {snapshot.eval_index}\n"
-            f"Temperature: {snapshot.temperature:.5f}\n"
-            f"Current DD: {snapshot.current_dd:.3f}%\n"
-            f"Best DD: {snapshot.best_dd:.3f}%\n"
-            f"Baseline DD: {baseline_dd:.3f}%\n"
-            f"Best improvement: {improvement_pp:.3f} pp ({rel:.1f}%)"
-        )
+        f"Iteration: {snapshot.eval_index}\n"
+        f"Temperature: {snapshot.temperature:.5f}\n"
+        f"Groups: {total_groups}\n"
+        f"Current DD: {snapshot.current_dd:.3f}%\n"
+        f"Best DD: {snapshot.best_dd:.3f}%\n"
+        f"Baseline DD: {baseline_dd:.3f}%\n"
+        f"Best improvement: {improvement_pp:.3f} pp ({rel:.1f}%)"
+    )
     else:
         info = (
             "Static weighted territories\n"
@@ -480,12 +499,6 @@ def render_frame(
         zorder=10,
     )
 
-    legend_groups = sorted(set(int(g) for g in snapshot.grouping))[:12]
-    legend_text = "\n".join([f"G{g}" for g in legend_groups])
-    legend_colors = np.array([palette[g] for g in legend_groups])
-    for k, (g, col) in enumerate(zip(legend_groups, legend_colors)):
-        ax.add_patch(plt.Rectangle((0.82, 0.93 - k*0.03), 0.03, 0.018, color=col, transform=ax.transAxes, zorder=10, clip_on=False))
-        ax.text(0.86, 0.939 - k*0.03, f"Group {g}", transform=ax.transAxes, va="center", fontsize=8, zorder=10)
 
     fig.savefig(out_path, dpi=120)
     plt.close(fig)
@@ -505,8 +518,12 @@ def main():
     ap.add_argument("--scope", default="32", help="26 or 32. '36' is treated as 32 for convenience.")
     ap.add_argument("--network", default="data/SV2024_all-island.nc")
     ap.add_argument("--nodes-csv", default=None, help="Optional path to the exclusive-group node CSV to feed make_emulator.")
-    ap.add_argument("--basemap", default=None, help="Optional ireland_all_island.geojson path.")
-    ap.add_argument("--seed", type=int, default=42, help="Annealing / weather seed passed to make_emulator.")
+    ap.add_argument(
+    "--basemap",
+    default=str(PROJECT_ROOT / "ireland_land_boundary.geojson"),
+    help="Ireland land boundary GeoJSON."
+)
+    ap.add_argument("--seed", type=int, default=76, help="Annealing / weather seed passed to make_emulator.")
     ap.add_argument("--runs", type=int, default=10000, help="Number of weighted emulator runs for make_emulator.")
     ap.add_argument("--max-evals", type=int, default=5000, help="Annealer evaluations.")
     ap.add_argument("--frames", type=int, default=72, help="Annealing frames to save.")
