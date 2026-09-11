@@ -75,8 +75,8 @@ def summarize_run(history):
 
 
 if __name__ == "__main__":
-    history = load_history(OUTPUT_DIR / "annealing_history_26_counties_99_20per.csv")
+    history = load_history(OUTPUT_DIR / "annealing_history_long.csv")
     summarize_run(history)
-    plot_annealing_diagnostics(history, title="26 counties, 0.99 alpha, 20 sweeps per temperature",
-                                save_path=OUTPUT_DIR / "hist/annealing_diagnostics_26_counties.png")
+    plot_annealing_diagnostics(history, title="6 counties, 0.95 alpha, 20 sweeps per temperature",
+                                save_path=OUTPUT_DIR / "hist/annealing_diagnostics_6_counties.png")
     print("done")

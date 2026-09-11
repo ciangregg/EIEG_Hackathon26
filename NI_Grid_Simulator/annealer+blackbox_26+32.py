@@ -611,11 +611,11 @@ best_nodes, best_dispatch_down, history = (
         blackbox=dispatch_down,
 
         # Small test settings
-        alpha=0.80,
+        alpha=0.99,
 
-        sweeps_per_temp=3,
+        sweeps_per_temp=20,
 
-        n_temperature_samples=5,
+        n_temperature_samples=10,
 
         hot_accept_prob=0.5,
 

@@ -552,7 +552,7 @@ dispatch_down, _ = make_emulator(
 # ============================================================
 
 nodes = pd.read_csv(
-    OUTPUT_DIR / "annealer_nodes_current.csv"
+    OUTPUT_DIR / "annealer_nodes_exclusive.csv"
 )
 
 
@@ -616,12 +616,11 @@ best_nodes, best_dispatch_down, history = (
 
         blackbox=dispatch_down,
 
-        # Small test settings
-        alpha=0.80,
+        alpha=0.99,
 
-        sweeps_per_temp=3,
+        sweeps_per_temp=10,
 
-        n_temperature_samples=5,
+        n_temperature_samples=10,
 
         hot_accept_prob=0.5,
 
