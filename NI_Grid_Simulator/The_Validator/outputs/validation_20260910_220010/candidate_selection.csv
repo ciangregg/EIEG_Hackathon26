@@ -1,0 +1,3 @@
+candidate_id,scope,safe_cases,total_cases,unsafe_cases,mean_raw_dd_pct,mean_reduction_pp,mean_relative_reduction_pct,worst_reduction_pp,total_new_security_failures
+26_w123_a2,26,5,5,0,5.812241226346243,0.45434699161566794,7.266588259736665,0.4120802795989542,0
+32_w77_a1,32,5,5,0,8.879481154580128,0.17557884084990824,1.9044429316758442,0.10704487469439705,0
