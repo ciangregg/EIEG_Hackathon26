@@ -1,0 +1,35 @@
+import geopandas as gpd
+from shapely.geometry import Point
+
+gdf = gpd.read_file(
+    r"C:\Users\sebas\EIEG_Hackathon26\CodeToRun\ne_50m_land\ne_50m_land.shp"
+)
+
+# A point safely on the island of Ireland
+centre_ireland = Point(-8.0, 53.5)
+
+# Find the Natural Earth land polygon containing that point
+ireland = gdf[gdf.geometry.contains(centre_ireland)].copy()
+
+if ireland.empty:
+    raise RuntimeError("Could not locate the island of Ireland.")
+
+ireland_geom = ireland.geometry.union_all()
+
+out = gpd.GeoDataFrame(
+    {"name": ["Ireland"]},
+    geometry=[ireland_geom],
+    crs=gdf.crs
+)
+
+output_path = (
+    r"C:\Users\sebas\EIEG_Hackathon26"
+    r"\NI_Grid_Simulator\ireland_land_boundary.geojson"
+)
+
+out.to_file(output_path, driver="GeoJSON")
+
+print("Done!")
+print("Saved:", output_path)
+print("Geometry:", ireland_geom.geom_type)
+print("Bounds:", ireland_geom.bounds)
