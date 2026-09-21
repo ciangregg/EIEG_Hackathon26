@@ -1,2 +1,4 @@
 # Ignore Python Virtual Environment
-venv/*
+.venv/
+
+__pycache__/

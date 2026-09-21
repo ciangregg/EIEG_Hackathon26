@@ -5,7 +5,7 @@ import requests
 
 
 
-INPUT_FILE = "outputbuses_not_mapped.csv"
+INPUT_FILE = "output/buses_not_mapped.csv"
 OUTPUT_FILE =  "output/buses_osm_candidates.csv"
 
 df = pd.read_csv(INPUT_FILE)
